@@ -1,0 +1,429 @@
+name: Build OTT Search APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Set up Gradle 8.5
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.5'
+
+    - name: Unpack OTT Search Project
+      run: |
+        mkdir -p app/src/main/java/com/ottsearch/app/core
+        mkdir -p app/src/main/java/com/ottsearch/app/ott
+        mkdir -p app/src/main/java/com/ottsearch/app/ui
+        mkdir -p app/src/main/res/values
+
+        # 1. settings.gradle.kts
+        cat << 'EOF' > settings.gradle.kts
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "OTT Search"
+        include(":app")
+        EOF
+
+        # 2. build.gradle.kts (Top-level)
+        cat << 'EOF' > build.gradle.kts
+        plugins {
+            id("com.android.application") version "8.2.2" apply false
+            id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+        }
+        EOF
+
+        # 3. app/build.gradle.kts
+        cat << 'EOF' > app/build.gradle.kts
+        plugins {
+            id("com.android.application")
+            id("org.jetbrains.kotlin.android")
+        }
+
+        android {
+            namespace = "com.ottsearch.app"
+            compileSdk = 34
+
+            defaultConfig {
+                applicationId = "com.ottsearch.app"
+                minSdk = 26
+                targetSdk = 34
+                versionCode = 1
+                versionName = "1.0.0"
+            }
+
+            buildTypes {
+                release {
+                    isMinifyEnabled = false
+                }
+            }
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+            buildFeatures {
+                compose = true
+            }
+            composeOptions {
+                kotlinCompilerExtensionVersion = "1.5.8"
+            }
+        }
+
+        dependencies {
+            implementation("androidx.core:core-ktx:1.12.0")
+            implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+            implementation("androidx.activity:activity-compose:1.8.2")
+            implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+            implementation("androidx.compose.ui:ui")
+            implementation("androidx.compose.ui:ui-graphics")
+            implementation("androidx.compose.ui:ui-tooling-preview")
+            implementation("androidx.compose.material3:material3")
+            implementation("io.coil-kt:coil-compose:2.5.0")
+        }
+        EOF
+
+        # 4. AndroidManifest.xml (Fold8 패키지 가시성 및 쿼리)
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.ottsearch.app">
+
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+            <queries>
+                <package android:name="com.netflix.mediaclient" />
+                <package android:name="kr.co.captv.pooqV2" />
+                <package android:name="com.coupang.mobile.play" />
+                <package android:name="com.disney.disneyplus" />
+                <intent>
+                    <action android:name="android.intent.action.VIEW" />
+                    <data android:scheme="https" />
+                </intent>
+            </queries>
+
+            <application
+                android:allowBackup="true"
+                android:label="OTT Search"
+                android:supportsRtl="true"
+                android:theme="@android:style/Theme.Material.NoActionBar">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true"
+                    android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # 5. MainActivity.kt
+        cat << 'EOF' > app/src/main/java/com/ottsearch/app/MainActivity.kt
+        package com.ottsearch.app
+
+        import android.os.Bundle
+        import androidx.activity.ComponentActivity
+        import androidx.activity.compose.setContent
+        import androidx.compose.runtime.*
+        import com.ottsearch.app.ui.MainFoldableScreen
+        import com.ottsearch.app.ui.ContentUiModel
+        import com.ottsearch.app.ott.OttType
+        import com.ottsearch.app.core.HangulSearchEngine
+
+        class MainActivity : ComponentActivity() {
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+                setContent {
+                    var query by remember { mutableStateOf("") }
+                    val dummyList = remember(query) {
+                        if (query.isBlank()) emptyList()
+                        else {
+                            val converted = HangulSearchEngine.convertDubeolsik(query)
+                            val effective = if (converted.isNotBlank()) converted else query
+                            listOf(
+                                ContentUiModel(
+                                    id = 1,
+                                    titleKo = when {
+                                        effective.contains("언터처블") || effective.contains("Intouchables") -> "언터처블: 1%의 우정"
+                                        effective.contains("리멤버") || effective.contains("워크") -> "워크 투 리멤버"
+                                        effective.contains("부산") || effective.contains("Busan") -> "부산행"
+                                        else -> "기생충"
+                                    },
+                                    originalTitle = when {
+                                        effective.contains("언터처블") || effective.contains("Intouchables") -> "The Intouchables"
+                                        effective.contains("리멤버") || effective.contains("워크") -> "A Walk to Remember"
+                                        effective.contains("부산") || effective.contains("Busan") -> "Train to Busan"
+                                        else -> "Parasite"
+                                    },
+                                    year = when {
+                                        effective.contains("언터처블") || effective.contains("Intouchables") -> "2011"
+                                        effective.contains("리멤버") || effective.contains("워크") -> "2002"
+                                        effective.contains("부산") || effective.contains("Busan") -> "2016"
+                                        else -> "2019"
+                                    },
+                                    posterUrl = "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
+                                    activeOtts = setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY, OttType.DISNEY_PLUS)
+                                )
+                            )
+                        }
+                    }
+                    MainFoldableScreen(
+                        onSearch = { query = it },
+                        results = dummyList,
+                        currentQuery = query
+                    )
+                }
+            }
+        }
+        EOF
+
+        # 6. OttLauncher.kt (4대 OTT 다이렉트 인텐트 & 클립보드 백업)
+        cat << 'EOF' > app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt
+        package com.ottsearch.app.ott
+
+        import android.content.ClipData
+        import android.content.ClipboardManager
+        import android.content.Context
+        import android.content.Intent
+        import android.net.Uri
+        import android.widget.Toast
+        import java.net.URLEncoder
+
+        enum class OttType(val displayName: String, val packageName: String, val colorHex: Long) {
+            NETFLIX("Netflix", "com.netflix.mediaclient", 0xFFE50914),
+            WAVVE("Wavve", "kr.co.captv.pooqV2", 0xFF1353FA),
+            COUPANG_PLAY("Coupang Play", "com.coupang.mobile.play", 0xFF00A0E9),
+            DISNEY_PLUS("Disney+", "com.disney.disneyplus", 0xFF113CCF)
+        }
+
+        object OttLauncher {
+            fun launch(context: Context, ott: OttType, searchQuery: String) {
+                val encodedQuery = URLEncoder.encode(searchQuery.trim(), "UTF-8")
+                val pm = context.packageManager
+                val isInstalled = try {
+                    pm.getPackageInfo(ott.packageName, 0)
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+
+                copyToClipboard(context, searchQuery)
+
+                if (!isInstalled) {
+                    Toast.makeText(context, "${ott.displayName} 앱이 설치되어 있지 않습니다.", Toast.LENGTH_SHORT).show()
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ott.packageName}")))
+                    return
+                }
+
+                val intent = when (ott) {
+                    OttType.NETFLIX -> Intent(Intent.ACTION_VIEW, Uri.parse("netflix://search?query=$encodedQuery")).apply { setPackage(ott.packageName) }
+                    OttType.WAVVE -> Intent(Intent.ACTION_VIEW, Uri.parse("https://www.wavve.com/search?searchWord=$encodedQuery")).apply { setPackage(ott.packageName) }
+                    OttType.COUPANG_PLAY -> pm.getLaunchIntentForPackage(ott.packageName)
+                    OttType.DISNEY_PLUS -> pm.getLaunchIntentForPackage(ott.packageName)
+                }
+
+                try {
+                    if (intent != null && intent.resolveActivity(pm) != null) {
+                        context.startActivity(intent)
+                    } else {
+                        pm.getLaunchIntentForPackage(ott.packageName)?.let { context.startActivity(it) }
+                    }
+                    Toast.makeText(context, "‘$searchQuery’ 복사 완료! 검색창에 바로 붙여넣으세요.", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    pm.getLaunchIntentForPackage(ott.packageName)?.let { context.startActivity(it) }
+                }
+            }
+
+            private fun copyToClipboard(context: Context, text: String) {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("OTT_SEARCH_QUERY", text))
+            }
+        }
+        EOF
+
+        # 7. HangulSearchEngine.kt (두벌식 오타 자동 변환)
+        cat << 'EOF' > app/src/main/java/com/ottsearch/app/core/HangulSearchEngine.kt
+        package com.ottsearch.app.core
+
+        object HangulSearchEngine {
+            private val ENG_TO_KOR = mapOf(
+                'q' to 'ㅂ', 'w' to 'ㅈ', 'e' to 'ㄷ', 'r' to 'ㄱ', 't' to 'ㅅ', 'y' to 'ㅛ', 'u' to 'ㅕ', 'i' to 'ㅑ', 'o' to 'ㅐ', 'p' to 'ㅔ',
+                'a' to 'ㅁ', 's' to 'ㄴ', 'd' to 'ㅇ', 'f' to 'ㄹ', 'g' to 'ㅎ', 'h' to 'ㅗ', 'j' to 'ㅓ', 'k' to 'ㅏ', 'l' to 'ㅣ',
+                'z' to 'ㅋ', 'x' to 'ㅌ', 'c' to 'ㅊ', 'v' to 'ㅍ', 'b' to 'ㅠ', 'n' to 'ㅜ', 'm' to 'ㅡ',
+                'Q' to 'ㅃ', 'W' to 'ㅉ', 'E' to 'ㄸ', 'R' to 'ㄲ', 'T' to 'ㅆ', 'O' to 'ㅒ', 'P' to 'ㅖ'
+            )
+            private val CHOSUNG = listOf('ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ')
+            private val JUNGSUNG = listOf('ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ')
+
+            fun convertDubeolsik(input: String): String {
+                val strokes = StringBuilder()
+                for (ch in input) strokes.append(ENG_TO_KOR[ch] ?: ch)
+                val s = strokes.toString()
+                val result = StringBuilder()
+                var i = 0
+                while (i < s.length) {
+                    val c = s[i]
+                    if (c in CHOSUNG && i + 1 < s.length && s[i + 1] in JUNGSUNG) {
+                        val choIdx = CHOSUNG.indexOf(c)
+                        val jungIdx = JUNGSUNG.indexOf(s[i + 1])
+                        val unicode = 0xAC00 + (choIdx * 21 + jungIdx) * 28
+                        result.append(unicode.toChar())
+                        i += 2
+                    } else {
+                        result.append(c)
+                        i += 1
+                    }
+                }
+                return result.toString()
+            }
+        }
+        EOF
+
+        # 8. MainFoldableScreen.kt (Fold8 반응형 다크 UI)
+        cat << 'EOF' > app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt
+        package com.ottsearch.app.ui
+
+        import androidx.compose.foundation.background
+        import androidx.compose.foundation.clickable
+        import androidx.compose.foundation.layout.*
+        import androidx.compose.foundation.lazy.grid.GridCells
+        import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+        import androidx.compose.foundation.lazy.grid.items
+        import androidx.compose.foundation.shape.RoundedCornerShape
+        import androidx.compose.material3.*
+        import androidx.compose.runtime.*
+        import androidx.compose.ui.Alignment
+        import androidx.compose.ui.Modifier
+        import androidx.compose.ui.draw.clip
+        import androidx.compose.ui.graphics.Color
+        import androidx.compose.ui.platform.LocalConfiguration
+        import androidx.compose.ui.platform.LocalContext
+        import androidx.compose.ui.text.font.FontWeight
+        import androidx.compose.ui.unit.dp
+        import androidx.compose.ui.unit.sp
+        import coil.compose.AsyncImage
+        import com.ottsearch.app.ott.OttLauncher
+        import com.ottsearch.app.ott.OttType
+
+        data class ContentUiModel(
+            val id: Int,
+            val titleKo: String,
+            val originalTitle: String,
+            val year: String,
+            val posterUrl: String?,
+            val activeOtts: Set<OttType>
+        )
+
+        @Composable
+        fun MainFoldableScreen(
+            onSearch: (String) -> Unit,
+            results: List<ContentUiModel>,
+            currentQuery: String
+        ) {
+            val configuration = LocalConfiguration.current
+            val gridColumns = if (configuration.screenWidthDp < 600) 2 else 4
+            var textState by remember { mutableStateOf(currentQuery) }
+            val context = LocalContext.current
+
+            Scaffold(
+                topBar = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().background(Color(0xFF141414)).padding(16.dp)
+                    ) {
+                        Text("OTT SEARCH", color = Color(0xFFE50914), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = textState,
+                            onValueChange = { textState = it; onSearch(it) },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("기생충, 언터처블, dnjzm xn flapaqj 등 검색") },
+                            singleLine = true
+                        )
+                    }
+                },
+                containerColor = Color(0xFF0F0F0F)
+            ) { paddingValues ->
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(gridColumns),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(results) { item ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                AsyncImage(
+                                    model = item.posterUrl,
+                                    contentDescription = item.titleKo,
+                                    modifier = Modifier.fillMaxWidth().aspectRatio(2f/3f).clip(RoundedCornerShape(6.dp))
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(item.titleKo, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("${item.year} · ${item.originalTitle}", color = Color.Gray, fontSize = 11.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    OttType.values().forEach { ott ->
+                                        Box(
+                                            modifier = Modifier.weight(1f).height(26.dp).clip(RoundedCornerShape(4.dp))
+                                                .background(Color(ott.colorHex))
+                                                .clickable { OttLauncher.launch(context, ott, item.titleKo) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(ott.displayName.take(3), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        EOF
+
+    - name: Generate Wrapper & Build Debug APK
+      run: |
+        gradle wrapper
+        ./gradlew assembleDebug
+
+    - name: Upload APK for Fold8
+      uses: actions/upload-artifact@v4
+      with:
+        name: OTT-Search-Fold8.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
