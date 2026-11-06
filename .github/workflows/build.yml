@@ -24,16 +24,13 @@ jobs:
       with:
         gradle-version: '8.5'
 
-    - name: Unpack OTT Search Project
+    - name: Create Project Files
       run: |
-        mkdir -p app/src/main/java/com/ottsearch/app/core
-        mkdir -p app/src/main/java/com/ottsearch/app/ott
-        mkdir -p app/src/main/java/com/ottsearch/app/ui
-        mkdir -p app/src/main/res/values
+        python3 - << 'PY_EOF'
+        import os
 
-        # 1. settings.gradle.kts
-        cat << 'EOF' > settings.gradle.kts
-        pluginManagement {
+        files = {
+            "settings.gradle.kts": '''pluginManagement {
             repositories {
                 google()
                 mavenCentral()
@@ -47,21 +44,17 @@ jobs:
                 mavenCentral()
             }
         }
-        rootProject.name = "OTT Search"
+        rootProject.name = "OTT-Search"
         include(":app")
-        EOF
+        ''',
 
-        # 2. build.gradle.kts (Top-level)
-        cat << 'EOF' > build.gradle.kts
-        plugins {
+            "build.gradle.kts": '''plugins {
             id("com.android.application") version "8.2.2" apply false
             id("org.jetbrains.kotlin.android") version "1.9.22" apply false
         }
-        EOF
+        ''',
 
-        # 3. app/build.gradle.kts
-        cat << 'EOF' > app/build.gradle.kts
-        plugins {
+            "app/build.gradle.kts": '''plugins {
             id("com.android.application")
             id("org.jetbrains.kotlin.android")
         }
@@ -107,13 +100,18 @@ jobs:
             implementation("androidx.compose.ui:ui-graphics")
             implementation("androidx.compose.ui:ui-tooling-preview")
             implementation("androidx.compose.material3:material3")
+            implementation("androidx.compose.foundation:foundation")
             implementation("io.coil-kt:coil-compose:2.5.0")
         }
-        EOF
+        ''',
 
-        # 4. AndroidManifest.xml (Fold8 패키지 가시성 및 쿼리)
-        cat << 'EOF' > app/src/main/AndroidManifest.xml
-        <?xml version="1.0" encoding="utf-8"?>
+            "app/src/main/res/values/strings.xml": '''<?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <string name="app_name">OTT Search</string>
+        </resources>
+        ''',
+
+            "app/src/main/AndroidManifest.xml": '''<?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
             package="com.ottsearch.app">
 
@@ -133,7 +131,7 @@ jobs:
 
             <application
                 android:allowBackup="true"
-                android:label="OTT Search"
+                android:label="@string/app_name"
                 android:supportsRtl="true"
                 android:theme="@android:style/Theme.Material.NoActionBar">
                 <activity
@@ -147,11 +145,9 @@ jobs:
                 </activity>
             </application>
         </manifest>
-        EOF
+        ''',
 
-        # 5. MainActivity.kt
-        cat << 'EOF' > app/src/main/java/com/ottsearch/app/MainActivity.kt
-        package com.ottsearch.app
+            "app/src/main/java/com/ottsearch/app/MainActivity.kt": '''package com.ottsearch.app
 
         import android.os.Bundle
         import androidx.activity.ComponentActivity
@@ -207,11 +203,9 @@ jobs:
                 }
             }
         }
-        EOF
+        ''',
 
-        # 6. OttLauncher.kt (4대 OTT 다이렉트 인텐트 & 클립보드 백업)
-        cat << 'EOF' > app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt
-        package com.ottsearch.app.ott
+            "app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt": '''package com.ottsearch.app.ott
 
         import android.content.ClipData
         import android.content.ClipboardManager
@@ -221,11 +215,11 @@ jobs:
         import android.widget.Toast
         import java.net.URLEncoder
 
-        enum class OttType(val displayName: String, val packageName: String, val colorHex: Long) {
-            NETFLIX("Netflix", "com.netflix.mediaclient", 0xFFE50914),
-            WAVVE("Wavve", "kr.co.captv.pooqV2", 0xFF1353FA),
-            COUPANG_PLAY("Coupang Play", "com.coupang.mobile.play", 0xFF00A0E9),
-            DISNEY_PLUS("Disney+", "com.disney.disneyplus", 0xFF113CCF)
+        enum class OttType(val displayName: String, val packageName: String, val r: Int, val g: Int, val b: Int) {
+            NETFLIX("Netflix", "com.netflix.mediaclient", 229, 9, 20),
+            WAVVE("Wavve", "kr.co.captv.pooqV2", 19, 83, 250),
+            COUPANG_PLAY("Coupang Play", "com.coupang.mobile.play", 0, 160, 233),
+            DISNEY_PLUS("Disney+", "com.disney.disneyplus", 17, 60, 207)
         }
 
         object OttLauncher {
@@ -271,21 +265,19 @@ jobs:
                 clipboard.setPrimaryClip(ClipData.newPlainText("OTT_SEARCH_QUERY", text))
             }
         }
-        EOF
+        ''',
 
-        # 7. HangulSearchEngine.kt (두벌식 오타 자동 변환)
-        cat << 'EOF' > app/src/main/java/com/ottsearch/app/core/HangulSearchEngine.kt
-        package com.ottsearch.app.core
+            "app/src/main/java/com/ottsearch/app/core/HangulSearchEngine.kt": '''package com.ottsearch.app.core
 
         object HangulSearchEngine {
             private val ENG_TO_KOR = mapOf(
-                'q' to 'ㅂ', 'w' to 'ㅈ', 'e' to 'ㄷ', 'r' to 'ㄱ', 't' to 'ㅅ', 'y' to 'ㅛ', 'u' to 'ㅕ', 'i' to 'ㅑ', 'o' to 'ㅐ', 'p' to 'ㅔ',
-                'a' to 'ㅁ', 's' to 'ㄴ', 'd' to 'ㅇ', 'f' to 'ㄹ', 'g' to 'ㅎ', 'h' to 'ㅗ', 'j' to 'ㅓ', 'k' to 'ㅏ', 'l' to 'ㅣ',
-                'z' to 'ㅋ', 'x' to 'ㅌ', 'c' to 'ㅊ', 'v' to 'ㅍ', 'b' to 'ㅠ', 'n' to 'ㅜ', 'm' to 'ㅡ',
-                'Q' to 'ㅃ', 'W' to 'ㅉ', 'E' to 'ㄸ', 'R' to 'ㄲ', 'T' to 'ㅆ', 'O' to 'ㅒ', 'P' to 'ㅖ'
+                \'q\' to \'ㅂ\', \'w\' to \'ㅈ\', \'e\' to \'ㄷ\', \'r\' to \'ㄱ\', \'t\' to \'ㅅ\', \'y\' to \'ㅛ\', \'u\' to \'ㅕ\', \'i\' to \'ㅑ\', \'o\' to \'ㅐ\', \'p\' to \'ㅔ\',
+                \'a\' to \'ㅁ\', \'s\' to \'ㄴ\', \'d\' to \'ㅇ\', \'f\' to \'ㄹ\', \'g\' to \'ㅎ\', \'h\' to \'ㅗ\', \'j\' to \'ㅓ\', \'k\' to \'ㅏ\', \'l\' to \'ㅣ\',
+                \'z\' to \'ㅋ\', \'x\' to \'ㅌ\', \'c\' to \'ㅊ\', \'v\' to \'ㅍ\', \'b\' to \'ㅠ\', \'n\' to \'ㅜ\', \'m\' to \'ㅡ\',
+                \'Q\' to \'ㅃ\', \'W\' to \'ㅉ\', \'E\' to \'ㄸ\', \'R\' to \'ㄲ\', \'T\' to \'ㅆ\', \'O\' to \'ㅒ\', \'P\' to \'ㅖ\'
             )
-            private val CHOSUNG = listOf('ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ')
-            private val JUNGSUNG = listOf('ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ')
+            private val CHOSUNG = listOf(\'ㄱ\', \'ㄲ\', \'ㄴ\', \'ㄷ\', \'ㄸ\', \'ㄹ\', \'ㅁ\', \'ㅂ\', \'ㅃ\', \'ㅅ\', \'ㅆ\', \'ㅇ\', \'ㅈ\', \'ㅉ\', \'ㅊ\', \'ㅋ\', \'ㅌ\', \'ㅍ\', \'ㅎ\')
+            private val JUNGSUNG = listOf(\'ㅏ\', \'ㅐ\', \'ㅑ\', \'ㅒ\', \'ㅓ\', \'ㅔ\', \'ㅕ\', \'ㅖ\', \'ㅗ\', \'ㅘ\', \'ㅙ\', \'ㅚ\', \'ㅛ\', \'ㅜ\', \'ㅝ\', \'ㅞ\', \'ㅟ\', \'ㅠ\', \'ㅡ\', \'ㅢ\', \'ㅣ\')
 
             fun convertDubeolsik(input: String): String {
                 val strokes = StringBuilder()
@@ -309,11 +301,9 @@ jobs:
                 return result.toString()
             }
         }
-        EOF
+        ''',
 
-        # 8. MainFoldableScreen.kt (Fold8 반응형 다크 UI)
-        cat << 'EOF' > app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt
-        package com.ottsearch.app.ui
+            "app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt": '''package com.ottsearch.app.ui
 
         import androidx.compose.foundation.background
         import androidx.compose.foundation.clickable
@@ -401,7 +391,7 @@ jobs:
                                     OttType.values().forEach { ott ->
                                         Box(
                                             modifier = Modifier.weight(1f).height(26.dp).clip(RoundedCornerShape(4.dp))
-                                                .background(Color(ott.colorHex))
+                                                .background(Color(ott.r, ott.g, ott.b))
                                                 .clickable { OttLauncher.launch(context, ott, item.titleKo) },
                                             contentAlignment = Alignment.Center
                                         ) {
@@ -415,12 +405,19 @@ jobs:
                 }
             }
         }
-        EOF
+        '''
+        }
 
-    - name: Generate Wrapper & Build Debug APK
+        for path, content in files.items():
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content.strip() + "\n")
+        print("All files generated successfully.")
+        PY_EOF
+
+    - name: Build Debug APK Directly
       run: |
-        gradle wrapper
-        ./gradlew assembleDebug
+        gradle assembleDebug --no-daemon
 
     - name: Upload APK for Fold8
       uses: actions/upload-artifact@v4
