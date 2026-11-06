@@ -24,6 +24,10 @@ jobs:
       with:
         gradle-version: '8.5'
 
+    - name: Configure Android SDK Path
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > local.properties
+
     - name: Create Project Files
       shell: python
       run: |
@@ -216,11 +220,11 @@ jobs:
         import android.widget.Toast
         import java.net.URLEncoder
 
-        enum class OttType(val displayName: String, val packageName: String, val r: Int, val g: Int, val b: Int) {
-            NETFLIX("Netflix", "com.netflix.mediaclient", 229, 9, 20),
-            WAVVE("Wavve", "kr.co.captv.pooqV2", 19, 83, 250),
-            COUPANG_PLAY("Coupang Play", "com.coupang.mobile.play", 0, 160, 233),
-            DISNEY_PLUS("Disney+", "com.disney.disneyplus", 17, 60, 207)
+        enum class OttType(val displayName: String, val packageName: String, val colorHex: Int) {
+            NETFLIX("Netflix", "com.netflix.mediaclient", 0xFFE50914.toInt()),
+            WAVVE("Wavve", "kr.co.captv.pooqV2", 0xFF1353FA.toInt()),
+            COUPANG_PLAY("Coupang Play", "com.coupang.mobile.play", 0xFF00A0E9.toInt()),
+            DISNEY_PLUS("Disney+", "com.disney.disneyplus", 0xFF113CCF.toInt())
         }
 
         object OttLauncher {
@@ -307,7 +311,6 @@ jobs:
         files["app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt"] = """package com.ottsearch.app.ui
 
         import androidx.compose.foundation.background
-        import androidx.compose.foundation.clickable
         import androidx.compose.foundation.layout.*
         import androidx.compose.foundation.lazy.grid.GridCells
         import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -315,7 +318,6 @@ jobs:
         import androidx.compose.foundation.shape.RoundedCornerShape
         import androidx.compose.material3.*
         import androidx.compose.runtime.*
-        import androidx.compose.ui.Alignment
         import androidx.compose.ui.Modifier
         import androidx.compose.ui.draw.clip
         import androidx.compose.ui.graphics.Color
@@ -351,9 +353,9 @@ jobs:
             Scaffold(
                 topBar = {
                     Column(
-                        modifier = Modifier.fillMaxWidth().background(Color(0xFF141414)).padding(16.dp)
+                        modifier = Modifier.fillMaxWidth().background(Color(0xFF141414.toInt())).padding(16.dp)
                     ) {
-                        Text("OTT SEARCH", color = Color(0xFFE50914), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text("OTT SEARCH", color = Color(0xFFE50914.toInt()), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = textState,
@@ -364,7 +366,7 @@ jobs:
                         )
                     }
                 },
-                containerColor = Color(0xFF0F0F0F)
+                containerColor = Color(0xFF0F0F0F.toInt())
             ) { paddingValues ->
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(gridColumns),
@@ -376,7 +378,7 @@ jobs:
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E.toInt()))
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
                                 AsyncImage(
@@ -389,12 +391,13 @@ jobs:
                                 Text("${item.year} · ${item.originalTitle}", color = Color.Gray, fontSize = 11.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    OttType.values().forEach { ott ->
-                                        Box(
-                                            modifier = Modifier.weight(1f).height(26.dp).clip(RoundedCornerShape(4.dp))
-                                                .background(Color(ott.r, ott.g, ott.b))
-                                                .clickable { OttLauncher.launch(context, ott, item.titleKo) },
-                                            contentAlignment = Alignment.Center
+                                    for (ott in OttType.values()) {
+                                        Button(
+                                            onClick = { OttLauncher.launch(context, ott, item.titleKo) },
+                                            modifier = Modifier.weight(1f).height(28.dp),
+                                            contentPadding = PaddingValues(0.dp),
+                                            shape = RoundedCornerShape(4.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(ott.colorHex))
                                         ) {
                                             Text(ott.displayName.take(3), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                         }
@@ -416,7 +419,7 @@ jobs:
 
     - name: Build Debug APK Directly
       run: |
-        gradle assembleDebug --no-daemon
+        gradle assembleDebug --no-daemon --stacktrace
 
     - name: Upload APK for Fold8
       uses: actions/upload-artifact@v4
