@@ -25,12 +25,13 @@ jobs:
         gradle-version: '8.5'
 
     - name: Create Project Files
+      shell: python
       run: |
-        python3 - << 'PY_EOF'
         import os
 
-        files = {
-            "settings.gradle.kts": '''pluginManagement {
+        files = {}
+
+        files["settings.gradle.kts"] = """pluginManagement {
             repositories {
                 google()
                 mavenCentral()
@@ -46,15 +47,15 @@ jobs:
         }
         rootProject.name = "OTT-Search"
         include(":app")
-        ''',
+        """
 
-            "build.gradle.kts": '''plugins {
+        files["build.gradle.kts"] = """plugins {
             id("com.android.application") version "8.2.2" apply false
             id("org.jetbrains.kotlin.android") version "1.9.22" apply false
         }
-        ''',
+        """
 
-            "app/build.gradle.kts": '''plugins {
+        files["app/build.gradle.kts"] = """plugins {
             id("com.android.application")
             id("org.jetbrains.kotlin.android")
         }
@@ -103,15 +104,15 @@ jobs:
             implementation("androidx.compose.foundation:foundation")
             implementation("io.coil-kt:coil-compose:2.5.0")
         }
-        ''',
+        """
 
-            "app/src/main/res/values/strings.xml": '''<?xml version="1.0" encoding="utf-8"?>
+        files["app/src/main/res/values/strings.xml"] = """<?xml version="1.0" encoding="utf-8"?>
         <resources>
             <string name="app_name">OTT Search</string>
         </resources>
-        ''',
+        """
 
-            "app/src/main/AndroidManifest.xml": '''<?xml version="1.0" encoding="utf-8"?>
+        files["app/src/main/AndroidManifest.xml"] = """<?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
             package="com.ottsearch.app">
 
@@ -145,9 +146,9 @@ jobs:
                 </activity>
             </application>
         </manifest>
-        ''',
+        """
 
-            "app/src/main/java/com/ottsearch/app/MainActivity.kt": '''package com.ottsearch.app
+        files["app/src/main/java/com/ottsearch/app/MainActivity.kt"] = """package com.ottsearch.app
 
         import android.os.Bundle
         import androidx.activity.ComponentActivity
@@ -203,9 +204,9 @@ jobs:
                 }
             }
         }
-        ''',
+        """
 
-            "app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt": '''package com.ottsearch.app.ott
+        files["app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt"] = """package com.ottsearch.app.ott
 
         import android.content.ClipData
         import android.content.ClipboardManager
@@ -265,19 +266,19 @@ jobs:
                 clipboard.setPrimaryClip(ClipData.newPlainText("OTT_SEARCH_QUERY", text))
             }
         }
-        ''',
+        """
 
-            "app/src/main/java/com/ottsearch/app/core/HangulSearchEngine.kt": '''package com.ottsearch.app.core
+        files["app/src/main/java/com/ottsearch/app/core/HangulSearchEngine.kt"] = """package com.ottsearch.app.core
 
         object HangulSearchEngine {
             private val ENG_TO_KOR = mapOf(
-                \'q\' to \'ㅂ\', \'w\' to \'ㅈ\', \'e\' to \'ㄷ\', \'r\' to \'ㄱ\', \'t\' to \'ㅅ\', \'y\' to \'ㅛ\', \'u\' to \'ㅕ\', \'i\' to \'ㅑ\', \'o\' to \'ㅐ\', \'p\' to \'ㅔ\',
-                \'a\' to \'ㅁ\', \'s\' to \'ㄴ\', \'d\' to \'ㅇ\', \'f\' to \'ㄹ\', \'g\' to \'ㅎ\', \'h\' to \'ㅗ\', \'j\' to \'ㅓ\', \'k\' to \'ㅏ\', \'l\' to \'ㅣ\',
-                \'z\' to \'ㅋ\', \'x\' to \'ㅌ\', \'c\' to \'ㅊ\', \'v\' to \'ㅍ\', \'b\' to \'ㅠ\', \'n\' to \'ㅜ\', \'m\' to \'ㅡ\',
-                \'Q\' to \'ㅃ\', \'W\' to \'ㅉ\', \'E\' to \'ㄸ\', \'R\' to \'ㄲ\', \'T\' to \'ㅆ\', \'O\' to \'ㅒ\', \'P\' to \'ㅖ\'
+                'q' to 'ㅂ', 'w' to 'ㅈ', 'e' to 'ㄷ', 'r' to 'ㄱ', 't' to 'ㅅ', 'y' to 'ㅛ', 'u' to 'ㅕ', 'i' to 'ㅑ', 'o' to 'ㅐ', 'p' to 'ㅔ',
+                'a' to 'ㅁ', 's' to 'ㄴ', 'd' to 'ㅇ', 'f' to 'ㄹ', 'g' to 'ㅎ', 'h' to 'ㅗ', 'j' to 'ㅓ', 'k' to 'ㅏ', 'l' to 'ㅣ',
+                'z' to 'ㅋ', 'x' to 'ㅌ', 'c' to 'ㅊ', 'v' to 'ㅍ', 'b' to 'ㅠ', 'n' to 'ㅜ', 'm' to 'ㅡ',
+                'Q' to 'ㅃ', 'W' to 'ㅉ', 'E' to 'ㄸ', 'R' to 'ㄲ', 'T' to 'ㅆ', 'O' to 'ㅒ', 'P' to 'ㅖ'
             )
-            private val CHOSUNG = listOf(\'ㄱ\', \'ㄲ\', \'ㄴ\', \'ㄷ\', \'ㄸ\', \'ㄹ\', \'ㅁ\', \'ㅂ\', \'ㅃ\', \'ㅅ\', \'ㅆ\', \'ㅇ\', \'ㅈ\', \'ㅉ\', \'ㅊ\', \'ㅋ\', \'ㅌ\', \'ㅍ\', \'ㅎ\')
-            private val JUNGSUNG = listOf(\'ㅏ\', \'ㅐ\', \'ㅑ\', \'ㅒ\', \'ㅓ\', \'ㅔ\', \'ㅕ\', \'ㅖ\', \'ㅗ\', \'ㅘ\', \'ㅙ\', \'ㅚ\', \'ㅛ\', \'ㅜ\', \'ㅝ\', \'ㅞ\', \'ㅟ\', \'ㅠ\', \'ㅡ\', \'ㅢ\', \'ㅣ\')
+            private val CHOSUNG = listOf('ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ')
+            private val JUNGSUNG = listOf('ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ')
 
             fun convertDubeolsik(input: String): String {
                 val strokes = StringBuilder()
@@ -301,9 +302,9 @@ jobs:
                 return result.toString()
             }
         }
-        ''',
+        """
 
-            "app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt": '''package com.ottsearch.app.ui
+        files["app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt"] = """package com.ottsearch.app.ui
 
         import androidx.compose.foundation.background
         import androidx.compose.foundation.clickable
@@ -405,15 +406,13 @@ jobs:
                 }
             }
         }
-        '''
-        }
+        """
 
         for path, content in files.items():
-            os.makedirs(os.path.dirname(path), exist_ok=True)
+            os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
-                f.write(content.strip() + "\n")
-        print("All files generated successfully.")
-        PY_EOF
+                f.write(content.strip() + "\\n")
+        print("Success: All files created.")
 
     - name: Build Debug APK Directly
       run: |
