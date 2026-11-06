@@ -1,4 +1,4 @@
-name: Build OTT Search APK
+name: Build DragOTT APK
 
 on:
   push:
@@ -58,7 +58,7 @@ jobs:
                 mavenCentral()
             }
         }
-        rootProject.name = "OTT-Search"
+        rootProject.name = "DragOTT"
         include(":app")
         """
 
@@ -83,8 +83,8 @@ jobs:
                 applicationId = "com.ottsearch.app"
                 minSdk = 26
                 targetSdk = 34
-                versionCode = 3
-                versionName = "2.1.0"
+                versionCode = 5
+                versionName = "3.1.0"
             }
 
             buildTypes {
@@ -122,9 +122,93 @@ jobs:
         files["app/src/main/res/values/strings.xml"] = """
         <?xml version="1.0" encoding="utf-8"?>
         <resources>
-            <string name="app_name">OTT Search</string>
-            <string name="accessibility_service_desc">OTT 버튼을 눌렀을 때 프로필 선택 후 자동으로 돋보기(검색)로 이동해 검색어를 입력하고 엔터까지 눌러주는 기능입니다.</string>
+            <string name="app_name">DragOTT</string>
+            <string name="accessibility_service_desc">보안 격리 적용: 오직 4대 OTT(넷플릭스, 웨이브, 쿠팡플레이, 디즈니+) 실행 시에만 프로필 선택 및 검색어 자동 입력을 수행합니다.</string>
         </resources>
+        """
+
+        # 동양용 트라이벌 아이콘 배경 (다크 옵시디언 + 붉은 원형 오라)
+        files["app/src/main/res/drawable/ic_dragon_background.xml"] = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <vector xmlns:android="http://schemas.android.com/apk/res/android"
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <path
+                android:fillColor="#0B0B0E"
+                android:pathData="M0,0h108v108h-108z" />
+            <path
+                android:fillColor="#1C0609"
+                android:pathData="M54,16 C75,16 92,33 92,54 C92,75 75,92 54,92 C33,92 16,75 16,54 C16,33 33,16 54,16 Z" />
+        </vector>
+        """
+
+        # 동양용(Eastern Dragon) 심플 트라이벌 벡터 아트워크 (용뿔 + 수염 + S자 몸통 + 불꽃 꼬리)
+        files["app/src/main/res/drawable/ic_dragon_foreground.xml"] = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <vector xmlns:android="http://schemas.android.com/apk/res/android"
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+
+            <!-- 외곽 트라이벌 초승달 링 -->
+            <path
+                android:fillColor="#7A0810"
+                android:pathData="M54,22 C35,22 21,37 21,55 C21,67 28,78 39,83 C32,76 28,66 28,55 C28,40 40,27 56,27 C66,27 74,32 79,40 C74,29 65,22 54,22 Z" />
+
+            <!-- 동양용 사슴뿔(용각) 및 머리 갈기 트라이벌 -->
+            <path
+                android:fillColor="#E50914"
+                android:pathData="M46,35 C52,27 62,22 73,21 C67,25 63,29 61,33 C68,29 75,28 82,29 C73,33 66,37 60,41 L48,40 Z" />
+
+            <!-- 동양용 얼굴, 윗주둥이, 코 끝 돌기, 아래턱 -->
+            <path
+                android:fillColor="#E50914"
+                android:pathData="M58,36 C47,33 37,35 28,39 C27,36 29,33 32,32 C26,34 24,39 27,42 C34,42 41,41 47,42 L35,47 C41,49 48,47 54,44 Z" />
+
+            <!-- 동양용 흐르는 긴 수염 (트라이벌 곡선) -->
+            <path
+                android:fillColor="#FF2A2A"
+                android:pathData="M34,41 C28,45 24,52 26,60 C27,53 31,47 38,44 Z" />
+
+            <!-- 동양용 S자 역동적 몸통 및 등갈기 가시 -->
+            <path
+                android:fillColor="#E50914"
+                android:pathData="M54,40 C68,42 78,51 74,61 C71,68 60,70 49,68 C39,66 34,71 37,77 C41,83 54,85 67,80 C74,77 79,71 81,64 C83,73 77,83 65,86 C48,90 31,85 29,74 C27,64 37,58 50,60 C60,61 66,58 65,52 C64,47 57,44 49,44 Z" />
+
+            <!-- 트라이벌 등 지느러미(비늘 날개 선) 포인트 -->
+            <path
+                android:fillColor="#FF3B3B"
+                android:pathData="M69,43 L79,41 L73,48 Z M75,51 L85,51 L76,57 Z M33,61 L24,65 L31,68 Z" />
+
+            <!-- 동양용 화염 꼬리 (삼지창 불꽃 트라이벌) -->
+            <path
+                android:fillColor="#E50914"
+                android:pathData="M67,80 C74,77 81,70 84,60 C85,68 83,76 77,82 C82,80 86,76 88,71 C87,79 80,86 70,87 Z" />
+
+            <!-- 날카로운 금빛/백색 용의 눈 -->
+            <path
+                android:fillColor="#FFD700"
+                android:pathData="M41,38 L49,35 L46,40 Z" />
+        </vector>
+        """
+
+        files["app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml"] = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@drawable/ic_dragon_background" />
+            <foreground android:drawable="@drawable/ic_dragon_foreground" />
+        </adaptive-icon>
+        """
+
+        files["app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"] = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+            <background android:drawable="@drawable/ic_dragon_background" />
+            <foreground android:drawable="@drawable/ic_dragon_foreground" />
+        </adaptive-icon>
         """
 
         files["app/src/main/res/xml/accessibility_service_config.xml"] = """
@@ -133,9 +217,11 @@ jobs:
             android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
             android:accessibilityFeedbackType="feedbackGeneric"
             android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagReportViewIds|flagRetrieveInteractiveWindows"
+            android:canPerformGestures="true"
             android:canRetrieveWindowContent="true"
             android:description="@string/accessibility_service_desc"
-            android:notificationTimeout="100" />
+            android:notificationTimeout="100"
+            android:packageNames="com.netflix.mediaclient,kr.co.captv.pooqV2,com.coupang.mobile.play,com.disney.disneyplus" />
         """
 
         files["app/src/main/AndroidManifest.xml"] = """
@@ -161,6 +247,8 @@ jobs:
 
             <application
                 android:allowBackup="true"
+                android:icon="@mipmap/ic_launcher"
+                android:roundIcon="@mipmap/ic_launcher_round"
                 android:label="@string/app_name"
                 android:supportsRtl="true"
                 android:theme="@android:style/Theme.Material.NoActionBar">
@@ -177,7 +265,7 @@ jobs:
                 <service
                     android:name="com.ottsearch.app.ott.OttAutoSearchService"
                     android:exported="true"
-                    android:label="OTT Search 자동 검색 입력기"
+                    android:label="DragOTT 자동 검색 입력기"
                     android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
                     <intent-filter>
                         <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -194,6 +282,9 @@ jobs:
         package com.ottsearch.app.ott
 
         import android.accessibilityservice.AccessibilityService
+        import android.accessibilityservice.GestureDescription
+        import android.graphics.Path
+        import android.graphics.Rect
         import android.os.Build
         import android.os.Bundle
         import android.os.Handler
@@ -205,22 +296,36 @@ jobs:
         class OttAutoSearchService : AccessibilityService() {
 
             companion object {
+                private val ALLOWED_PACKAGES = setOf(
+                    "com.netflix.mediaclient",
+                    "kr.co.captv.pooqV2",
+                    "com.coupang.mobile.play",
+                    "com.disney.disneyplus"
+                )
+
                 @Volatile var targetPackage: String? = null
                 @Volatile var targetQuery: String? = null
+                @Volatile var targetProfile: String = ""
                 @Volatile var startTime: Long = 0L
                 @Volatile var textInjected: Boolean = false
                 @Volatile var textInjectedTime: Long = 0L
                 @Volatile var lastTabClickTime: Long = 0L
                 @Volatile var lastPlaceholderClickTime: Long = 0L
+                @Volatile var lastProfileClickTime: Long = 0L
+                @Volatile var profileClickCount: Int = 0
 
-                fun startAutoSearch(pkg: String, query: String) {
+                fun startAutoSearch(pkg: String, query: String, autoProfile: String) {
+                    if (!ALLOWED_PACKAGES.contains(pkg)) return
                     targetPackage = pkg
                     targetQuery = query.trim()
+                    targetProfile = autoProfile.trim()
                     startTime = System.currentTimeMillis()
                     textInjected = false
                     textInjectedTime = 0L
                     lastTabClickTime = 0L
                     lastPlaceholderClickTime = 0L
+                    lastProfileClickTime = 0L
+                    profileClickCount = 0
                 }
             }
 
@@ -240,6 +345,10 @@ jobs:
 
             override fun onAccessibilityEvent(event: AccessibilityEvent?) {
                 val pkg = targetPackage ?: return
+                if (!ALLOWED_PACKAGES.contains(pkg)) {
+                    targetPackage = null
+                    return
+                }
                 if (System.currentTimeMillis() - startTime > 30000L) {
                     targetPackage = null
                     targetQuery = null
@@ -263,11 +372,20 @@ jobs:
 
                 val root = rootInActiveWindow ?: return
                 val currentPkg = root.packageName?.toString() ?: ""
-                if (currentPkg != pkg) return
+                if (currentPkg != pkg || !ALLOWED_PACKAGES.contains(currentPkg)) return
 
-                // [프로필 선택 화면 감지] 사용자가 프로필(오승용, 민트맘 등)을 선택할 때까지 대기 시간 연장하며 홀드
                 if (isProfileSelectionScreen(root)) {
                     startTime = now
+                    val desiredProfile = targetProfile
+                    if (desiredProfile.isNotEmpty() && now - lastProfileClickTime > 1200L) {
+                        val profileNode = findProfileNode(root, desiredProfile)
+                        if (profileNode != null) {
+                            lastProfileClickTime = now
+                            val clicked = clickProfileTarget(profileNode, profileClickCount > 0)
+                            profileClickCount++
+                            if (clicked) return
+                        }
+                    }
                     return
                 }
 
@@ -318,7 +436,7 @@ jobs:
                     }
                 }
 
-                if (now - lastTabClickTime > 1300L) {
+                if (now - lastTabClickTime > 1200L) {
                     val searchTab = findSearchTabOrIcon(root)
                     if (searchTab != null) {
                         if (performClickOnNodeOrParent(searchTab)) {
@@ -343,6 +461,63 @@ jobs:
                 }
                 for (i in 0 until node.childCount) {
                     if (isProfileSelectionScreen(node.getChild(i))) return true
+                }
+                return false
+            }
+
+            private fun findProfileNode(node: AccessibilityNodeInfo?, profileName: String): AccessibilityNodeInfo? {
+                if (node == null || !node.isVisibleToUser) return null
+                val t = node.text?.toString()?.trim() ?: ""
+                val cd = node.contentDescription?.toString()?.trim() ?: ""
+                if (t.equals(profileName, ignoreCase = true) || cd.equals(profileName, ignoreCase = true) ||
+                    t.contains(profileName) || cd.contains(profileName)) {
+                    return node
+                }
+                for (i in 0 until node.childCount) {
+                    val found = findProfileNode(node.getChild(i), profileName)
+                    if (found != null) return found
+                }
+                return null
+            }
+
+            private fun clickProfileTarget(profileNode: AccessibilityNodeInfo, useGestureFallback: Boolean): Boolean {
+                if (!useGestureFallback) {
+                    if (profileNode.isClickable && profileNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                        return true
+                    }
+                    var curr = profileNode.parent
+                    var depth = 0
+                    while (curr != null && depth < 4) {
+                        val rect = Rect()
+                        curr.getBoundsInScreen(rect)
+                        if (curr.isClickable && rect.width() in 50..800) {
+                            if (curr.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+                        }
+                        for (i in 0 until curr.childCount) {
+                            val sibling = curr.getChild(i)
+                            if (sibling != null && sibling != profileNode && sibling.isClickable) {
+                                val sRect = Rect()
+                                sibling.getBoundsInScreen(sRect)
+                                if (sRect.width() in 50..600) {
+                                    if (sibling.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+                                }
+                            }
+                        }
+                        curr = curr.parent
+                        depth++
+                    }
+                }
+
+                val rect = Rect()
+                profileNode.getBoundsInScreen(rect)
+                if (rect.width() > 0 && rect.height() > 0) {
+                    val tapX = rect.centerX().toFloat()
+                    val tapY = if (useGestureFallback) (rect.top - 70).coerceAtLeast(100).toFloat() else rect.centerY().toFloat()
+                    val path = Path().apply { moveTo(tapX, tapY) }
+                    val stroke = GestureDescription.StrokeDescription(path, 0L, 80L)
+                    val gesture = GestureDescription.Builder().addStroke(stroke).build()
+                    dispatchGesture(gesture, null, null)
+                    return true
                 }
                 return false
             }
@@ -451,7 +626,6 @@ jobs:
         files["app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt"] = """
         package com.ottsearch.app.ott
 
-        import android.app.SearchManager
         import android.content.ClipData
         import android.content.ClipboardManager
         import android.content.Context
@@ -468,6 +642,30 @@ jobs:
         }
 
         object OttLauncher {
+            private const val PREFS_NAME = "ott_search_prefs"
+            private const val KEY_AUTO_PROFILE = "auto_profile_name"
+            private const val KEY_TMDB_API = "tmdb_api_key"
+
+            fun getAutoProfile(context: Context): String {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                return prefs.getString(KEY_AUTO_PROFILE, "오승용") ?: "오승용"
+            }
+
+            fun setAutoProfile(context: Context, profileName: String) {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit().putString(KEY_AUTO_PROFILE, profileName).apply()
+            }
+
+            fun getTmdbApiKey(context: Context): String {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                return prefs.getString(KEY_TMDB_API, "") ?: ""
+            }
+
+            fun setTmdbApiKey(context: Context, apiKey: String) {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit().putString(KEY_TMDB_API, apiKey.trim()).apply()
+            }
+
             fun isAccessibilityEnabled(context: Context): Boolean {
                 val enabledServices = Settings.Secure.getString(
                     context.contentResolver,
@@ -511,7 +709,8 @@ jobs:
                     return
                 }
 
-                OttAutoSearchService.startAutoSearch(ott.packageName, cleanQuery)
+                val autoProfile = getAutoProfile(context)
+                OttAutoSearchService.startAutoSearch(ott.packageName, cleanQuery, autoProfile)
 
                 try {
                     val launchIntent = pm.getLaunchIntentForPackage(ott.packageName)?.apply {
@@ -521,7 +720,7 @@ jobs:
                         context.startActivity(launchIntent)
                     }
                     if (!isAccessibilityEnabled(context)) {
-                        Toast.makeText(context, "상단의 ‘2. 접근성 권한 켜기’를 활성화하면 프로필 선택 후에도 자동 검색됩니다!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "상단의 ‘2. 접근성 권한 켜기’를 활성화하면 자동 검색됩니다!", Toast.LENGTH_LONG).show()
                     }
                 } catch (e: Exception) {
                     Toast.makeText(context, "${ott.displayName} 실행 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
@@ -540,6 +739,10 @@ jobs:
 
         import com.ottsearch.app.ott.OttType
         import com.ottsearch.app.ui.ContentUiModel
+        import org.json.JSONObject
+        import java.net.HttpURLConnection
+        import java.net.URL
+        import java.net.URLEncoder
 
         object HangulSearchEngine {
             private val ENG_TO_KOR = mapOf(
@@ -565,17 +768,31 @@ jobs:
                 Pair('ㄹ', 'ㅎ') to "ㅀ", Pair('ㅂ', 'ㅅ') to "ㅄ"
             )
 
-            private val CATALOG = listOf(
-                ContentUiModel(1, "기생충", "Parasite", "2019", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("기생충"), 95.0),
-                ContentUiModel(2, "부산행", "Train to Busan", "2016", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("부산행"), 88.0),
-                ContentUiModel(3, "언터처블: 1%의 우정", "The Intouchables", "2011", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("언터처블", "1%의 우정", "Intouchables"), 98.0),
-                ContentUiModel(4, "언터처블", "The Untouchables", "1987", "영화", setOf(OttType.WAVVE), listOf("언터처블 1987"), 40.0),
-                ContentUiModel(5, "워크 투 리멤버", "A Walk to Remember", "2002", "영화", setOf(OttType.WAVVE, OttType.COUPANG_PLAY), listOf("워크투리멤버"), 85.0),
-                ContentUiModel(6, "무빙", "Moving", "2023", "시리즈", setOf(OttType.DISNEY_PLUS), listOf("무빙"), 94.0),
-                ContentUiModel(7, "오징어 게임", "Squid Game", "2021", "시리즈", setOf(OttType.NETFLIX), listOf("오징어게임"), 96.0),
-                ContentUiModel(8, "더 글로리", "The Glory", "2022", "시리즈", setOf(OttType.NETFLIX), listOf("더글로리"), 92.0),
-                ContentUiModel(9, "소년시대", "Boyhood", "2023", "시리즈", setOf(OttType.COUPANG_PLAY), listOf("소년시대"), 89.0),
-                ContentUiModel(10, "파묘", "Exhuma", "2024", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("파묘"), 91.0)
+            val CATALOG = listOf(
+                ContentUiModel(1, "기생충", "Parasite", "2019", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("기생충"), 95.0, "https://image.tmdb.org/t/p/w342/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg"),
+                ContentUiModel(2, "부산행", "Train to Busan", "2016", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("부산행"), 88.0, "https://image.tmdb.org/t/p/w342/vNVFt6dtcqnI7hqa6LFBUibuFiw.jpg"),
+                ContentUiModel(3, "언터처블: 1%의 우정", "The Intouchables", "2011", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("언터처블", "1%의 우정", "Intouchables"), 98.0, "https://image.tmdb.org/t/p/w342/1QU7HKgsQbGpzsJbJK4pAVQV9F5.jpg"),
+                ContentUiModel(4, "언터처블", "The Untouchables", "1987", "영화", setOf(OttType.WAVVE), listOf("언터처블 1987"), 40.0, "https://image.tmdb.org/t/p/w342/8BquGK22zCcsmBWiaIakaaPpSZb.jpg"),
+                ContentUiModel(5, "워크 투 리멤버", "A Walk to Remember", "2002", "영화", setOf(OttType.WAVVE, OttType.COUPANG_PLAY), listOf("워크투리멤버"), 85.0, "https://image.tmdb.org/t/p/w342/8lU3vK9p8t34rN2TEi61D0X2V1U.jpg"),
+                ContentUiModel(6, "무빙", "Moving", "2023", "시리즈", setOf(OttType.DISNEY_PLUS), listOf("무빙"), 94.0, "https://image.tmdb.org/t/p/w342/vf9SNXNAFq2K7ksF3Xh09v7M45p.jpg"),
+                ContentUiModel(7, "오징어 게임", "Squid Game", "2021", "시리즈", setOf(OttType.NETFLIX), listOf("오징어게임"), 97.0, "https://image.tmdb.org/t/p/w342/dDlEmu3EZ0Pgg93K2SVNLCjCSvE.jpg"),
+                ContentUiModel(8, "더 글로리", "The Glory", "2022", "시리즈", setOf(OttType.NETFLIX), listOf("더글로리"), 92.0, "https://image.tmdb.org/t/p/w342/6jOpyXVzQyYL4QB12VRp0xdOSa.jpg"),
+                ContentUiModel(9, "소년시대", "Boyhood", "2023", "시리즈", setOf(OttType.COUPANG_PLAY), listOf("소년시대"), 89.0, ""),
+                ContentUiModel(10, "파묘", "Exhuma", "2024", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("파묘"), 93.0, ""),
+                ContentUiModel(11, "서울의 봄", "12.12: The Day", "2023", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("서울의봄"), 92.0, ""),
+                ContentUiModel(12, "흑백요리사: 요리 계급 전쟁", "Culinary Class Wars", "2024", "시리즈", setOf(OttType.NETFLIX), listOf("흑백요리사", "요리계급전쟁"), 95.0, ""),
+                ContentUiModel(13, "범죄도시 4", "The Roundup: Punishment", "2024", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("범죄도시", "범죄도시4"), 90.0, ""),
+                ContentUiModel(14, "슬기로운 의사생활", "Hospital Playlist", "2020", "시리즈", setOf(OttType.NETFLIX), listOf("슬의생", "슬기로운의사생활"), 91.0, ""),
+                ContentUiModel(15, "인셉션", "Inception", "2010", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("인셉션"), 90.0, ""),
+                ContentUiModel(16, "인터스텔라", "Interstellar", "2014", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("인터스텔라"), 93.0, ""),
+                ContentUiModel(17, "어벤져스: 엔드게임", "Avengers: Endgame", "2019", "영화", setOf(OttType.DISNEY_PLUS), listOf("어벤져스", "엔드게임"), 92.0, ""),
+                ContentUiModel(18, "킹덤", "Kingdom", "2019", "시리즈", setOf(OttType.NETFLIX), listOf("킹덤"), 88.0, ""),
+                ContentUiModel(19, "카지노", "Big Bet", "2022", "시리즈", setOf(OttType.DISNEY_PLUS), listOf("카지노"), 87.0, ""),
+                ContentUiModel(20, "안나", "Anna", "2022", "시리즈", setOf(OttType.COUPANG_PLAY), listOf("안나"), 86.0, ""),
+                ContentUiModel(21, "조명가게", "Light Shop", "2024", "시리즈", setOf(OttType.DISNEY_PLUS), listOf("조명가게"), 89.0, ""),
+                ContentUiModel(22, "모범택시", "Taxi Driver", "2021", "시리즈", setOf(OttType.NETFLIX, OttType.WAVVE), listOf("모범택시"), 90.0, ""),
+                ContentUiModel(23, "극한직업", "Extreme Job", "2019", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("극한직업"), 88.0, ""),
+                ContentUiModel(24, "아바타: 물의 길", "Avatar: The Way of Water", "2022", "영화", setOf(OttType.DISNEY_PLUS), listOf("아바타", "물의 길"), 89.0, "")
             )
 
             fun convertDubeolsik(input: String): String {
@@ -649,59 +866,222 @@ jobs:
                 return dp[s1.length][s2.length]
             }
 
-            fun search(query: String): List<ContentUiModel> {
-                val qRaw = query.trim()
-                if (qRaw.isEmpty()) return CATALOG
+            fun scoreItem(qRaw: String, item: ContentUiModel): Double {
                 val qNorm = norm(qRaw)
                 val qConv = convertDubeolsik(qRaw)
                 val qConvNorm = norm(qConv)
 
+                val candidates = mutableListOf(Pair(item.titleKo, 1.0), Pair(item.originalTitle, 0.95))
+                for (al in item.aliases) candidates.add(Pair(al, 1.0))
+
+                var best = 0.0
+                for ((cand, w) in candidates) {
+                    if (cand.isBlank()) continue
+                    val cRaw = cand.trim()
+                    val cNorm = norm(cRaw)
+                    val tier = when {
+                        qRaw.equals(cRaw, ignoreCase = true) -> 10000.0
+                        qNorm == cNorm -> 8000.0
+                        qConv.isNotEmpty() && (qConv.equals(cRaw, ignoreCase = true) || qConvNorm == cNorm) -> 7500.0
+                        cNorm.startsWith(qNorm) || (qConvNorm.isNotEmpty() && cNorm.startsWith(qConvNorm)) -> 5000.0
+                        cNorm.contains(qNorm) || (qConvNorm.isNotEmpty() && cNorm.contains(qConvNorm)) -> 3000.0
+                        else -> {
+                            val d1 = levenshtein(qNorm, cNorm)
+                            val d2 = if (qConvNorm.isNotEmpty()) levenshtein(qConvNorm, cNorm) else 99
+                            val d = minOf(d1, d2)
+                            val m = maxOf(qNorm.length, cNorm.length)
+                            if (m > 0 && d <= 2) (1.0 - d.toDouble() / m) * 2000.0 else 0.0
+                        }
+                    }
+                    val s = tier * w
+                    if (s > best) best = s
+                }
+                return if (best > 0.0) best + item.popularity * 10.0 else 0.0
+            }
+
+            fun searchLocal(query: String): List<ContentUiModel> {
+                val qRaw = query.trim()
+                if (qRaw.isEmpty()) return CATALOG
                 val scored = mutableListOf<Pair<ContentUiModel, Double>>()
                 for (item in CATALOG) {
-                    val candidates = mutableListOf(Pair(item.titleKo, 1.0), Pair(item.originalTitle, 0.95))
-                    for (al in item.aliases) candidates.add(Pair(al, 1.0))
+                    val s = scoreItem(qRaw, item)
+                    if (s > 0.0) scored.add(Pair(item, s))
+                }
+                return scored.sortedByDescending { it.second }.map { it.first }
+            }
 
-                    var best = 0.0
-                    for ((cand, w) in candidates) {
-                        val cRaw = cand.trim()
-                        val cNorm = norm(cRaw)
-                        val tier = when {
-                            qRaw.equals(cRaw, ignoreCase = true) -> 10000.0
-                            qNorm == cNorm -> 8000.0
-                            qConv.isNotEmpty() && (qConv.equals(cRaw, ignoreCase = true) || qConvNorm == cNorm) -> 7500.0
-                            cNorm.startsWith(qNorm) || qConvNorm.startsWith(cNorm) || cNorm.startsWith(qConvNorm) -> 5000.0
-                            cNorm.contains(qNorm) || (qConvNorm.isNotEmpty() && cNorm.contains(qConvNorm)) -> 3000.0
-                            else -> {
-                                val d1 = levenshtein(qNorm, cNorm)
-                                val d2 = if (qConvNorm.isNotEmpty()) levenshtein(qConvNorm, cNorm) else 99
-                                val d = minOf(d1, d2)
-                                val m = maxOf(qNorm.length, cNorm.length)
-                                if (m > 0 && d <= 2) (1.0 - d.toDouble() / m) * 2000.0 else 0.0
-                            }
-                        }
-                        val s = tier * w
-                        if (s > best) best = s
-                    }
-                    if (best > 0.0) {
-                        scored.add(Pair(item, best + item.popularity * 10.0))
-                    }
+            fun searchLive(query: String, tmdbApiKey: String): List<ContentUiModel> {
+                val qRaw = query.trim()
+                if (qRaw.isEmpty()) return CATALOG
+
+                val localMatches = searchLocal(qRaw).toMutableList()
+                val conv = convertDubeolsik(qRaw)
+                val effectiveQuery = if (conv != qRaw && conv.any { it in '가'..'힣' }) conv else qRaw
+
+                val remoteMatches = mutableListOf<ContentUiModel>()
+
+                if (tmdbApiKey.isNotBlank()) {
+                    remoteMatches.addAll(fetchFromTmdb(effectiveQuery, tmdbApiKey))
                 }
 
-                val sorted = scored.sortedByDescending { it.second }.map { it.first }.toMutableList()
-                val directTitle = if (qConv != qRaw && qConv.any { it in '가'..'힣' }) qConv else qRaw
-                if (sorted.isEmpty()) {
-                    sorted.add(
+                if (remoteMatches.isEmpty()) {
+                    remoteMatches.addAll(fetchFromItunesKr(effectiveQuery))
+                }
+
+                val combined = mutableListOf<ContentUiModel>()
+                val seenTitles = mutableSetOf<String>()
+
+                for (item in localMatches) {
+                    val key = norm(item.titleKo) + item.year
+                    if (seenTitles.add(key)) combined.add(item)
+                }
+                for (item in remoteMatches) {
+                    val key = norm(item.titleKo) + item.year
+                    if (seenTitles.add(key)) combined.add(item)
+                }
+
+                if (combined.isEmpty()) {
+                    combined.add(
                         ContentUiModel(
-                            id = 999,
-                            titleKo = directTitle,
+                            id = 99999,
+                            titleKo = effectiveQuery,
                             originalTitle = "4대 OTT 앱에서 직접 자동 검색",
                             year = "자동입력",
                             mediaType = "직접검색",
-                            activeOtts = setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY, OttType.DISNEY_PLUS)
+                            activeOtts = setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY, OttType.DISNEY_PLUS),
+                            providerVerified = false
                         )
                     )
                 }
-                return sorted
+                return combined
+            }
+
+            private fun fetchFromTmdb(query: String, apiKey: String): List<ContentUiModel> {
+                val list = mutableListOf<ContentUiModel>()
+                try {
+                    val enc = URLEncoder.encode(query, "UTF-8")
+                    val url = "https://api.themoviedb.org/3/search/multi?api_key=$apiKey&query=$enc&language=ko-KR&region=KR"
+                    val jsonStr = httpGet(url) ?: return list
+                    val root = JSONObject(jsonStr)
+                    val results = root.optJSONArray("results") ?: return list
+
+                    val limit = minOf(results.length(), 8)
+                    for (i in 0 until limit) {
+                        val obj = results.getJSONObject(i)
+                        val mediaType = obj.optString("media_type", "")
+                        if (mediaType != "movie" && mediaType != "tv") continue
+                        val id = obj.optInt("id", 0)
+                        val titleKo = if (mediaType == "movie") obj.optString("title", "") else obj.optString("name", "")
+                        val origTitle = if (mediaType == "movie") obj.optString("original_title", "") else obj.optString("original_name", "")
+                        val date = if (mediaType == "movie") obj.optString("release_date", "") else obj.optString("first_air_date", "")
+                        val year = if (date.length >= 4) date.substring(0, 4) else "미상"
+                        val posterPath = obj.optString("poster_path", "")
+                        val posterUrl = if (posterPath.isNotBlank() && posterPath != "null") "https://image.tmdb.org/t/p/w342$posterPath" else ""
+                        val pop = obj.optDouble("popularity", 10.0)
+
+                        val otts = fetchTmdbKrProviders(mediaType, id, apiKey)
+                        list.add(
+                            ContentUiModel(
+                                id = id,
+                                titleKo = if (titleKo.isNotBlank()) titleKo else origTitle,
+                                originalTitle = origTitle,
+                                year = year,
+                                mediaType = if (mediaType == "movie") "영화" else "시리즈",
+                                activeOtts = otts,
+                                popularity = pop,
+                                posterUrl = posterUrl,
+                                providerVerified = true
+                            )
+                        )
+                    }
+                } catch (e: Exception) {}
+                return list
+            }
+
+            private fun fetchTmdbKrProviders(mediaType: String, id: Int, apiKey: String): Set<OttType> {
+                val set = mutableSetOf<OttType>()
+                try {
+                    val url = "https://api.themoviedb.org/3/$mediaType/$id/watch/providers?api_key=$apiKey"
+                    val jsonStr = httpGet(url) ?: return set
+                    val kr = JSONObject(jsonStr).optJSONObject("results")?.optJSONObject("KR") ?: return set
+                    val flatrate = kr.optJSONArray("flatrate") ?: return set
+                    for (i in 0 until flatrate.length()) {
+                        val p = flatrate.getJSONObject(i)
+                        val pid = p.optInt("provider_id", 0)
+                        val pname = p.optString("provider_name", "").lowercase()
+                        if (pid == 1796 || pname.contains("tving")) continue
+                        when {
+                            pid == 8 || pname.contains("netflix") -> set.add(OttType.NETFLIX)
+                            pid == 356 || pname.contains("wavve") -> set.add(OttType.WAVVE)
+                            pid == 1881 || pid == 357 || pname.contains("coupang") -> set.add(OttType.COUPANG_PLAY)
+                            pid == 337 || pname.contains("disney") -> set.add(OttType.DISNEY_PLUS)
+                        }
+                    }
+                } catch (e: Exception) {}
+                return set
+            }
+
+            private fun fetchFromItunesKr(query: String): List<ContentUiModel> {
+                val list = mutableListOf<ContentUiModel>()
+                try {
+                    val enc = URLEncoder.encode(query, "UTF-8")
+                    val url = "https://itunes.apple.com/search?term=$enc&country=KR&lang=ko_kr&media=movie&limit=8"
+                    val jsonStr = httpGet(url) ?: return list
+                    val results = JSONObject(jsonStr).optJSONArray("results") ?: return list
+                    for (i in 0 until results.length()) {
+                        val obj = results.getJSONObject(i)
+                        val title = obj.optString("trackName", "")
+                        if (title.isBlank()) continue
+                        val artist = obj.optString("artistName", "")
+                        val date = obj.optString("releaseDate", "")
+                        val year = if (date.length >= 4) date.substring(0, 4) else ""
+                        val art = obj.optString("artworkUrl100", "").replace("100x100bb", "400x600bb")
+                        list.add(
+                            ContentUiModel(
+                                id = obj.optInt("trackId", 10000 + i),
+                                titleKo = title,
+                                originalTitle = if (artist.isNotBlank()) "감독: $artist" else title,
+                                year = year,
+                                mediaType = "영화",
+                                activeOtts = emptySet(),
+                                posterUrl = art,
+                                providerVerified = false
+                            )
+                        )
+                    }
+                } catch (e: Exception) {}
+                return list
+            }
+
+            fun fetchPosterForTitle(title: String): String {
+                try {
+                    val enc = URLEncoder.encode(title, "UTF-8")
+                    val url = "https://itunes.apple.com/search?term=$enc&country=KR&lang=ko_kr&media=movie&limit=1"
+                    val jsonStr = httpGet(url) ?: return ""
+                    val results = JSONObject(jsonStr).optJSONArray("results")
+                    if (results != null && results.length() > 0) {
+                        val art = results.getJSONObject(0).optString("artworkUrl100", "")
+                        if (art.isNotBlank()) return art.replace("100x100bb", "400x600bb")
+                    }
+                } catch (e: Exception) {}
+                return ""
+            }
+
+            private fun httpGet(urlStr: String): String? {
+                var conn: HttpURLConnection? = null
+                return try {
+                    conn = URL(urlStr).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 4000
+                    conn.readTimeout = 4000
+                    conn.requestMethod = "GET"
+                    if (conn.responseCode == 200) {
+                        conn.inputStream.bufferedReader().use { it.readText() }
+                    } else null
+                } catch (e: Exception) {
+                    null
+                } finally {
+                    conn?.disconnect()
+                }
             }
         }
         """
@@ -709,7 +1089,11 @@ jobs:
         files["app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt"] = """
         package com.ottsearch.app.ui
 
+        import android.graphics.BitmapFactory
+        import android.util.LruCache
+        import androidx.compose.foundation.Image
         import androidx.compose.foundation.background
+        import androidx.compose.foundation.clickable
         import androidx.compose.foundation.layout.*
         import androidx.compose.foundation.lazy.grid.GridCells
         import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -719,16 +1103,27 @@ jobs:
         import androidx.compose.runtime.*
         import androidx.compose.ui.Alignment
         import androidx.compose.ui.Modifier
+        import androidx.compose.ui.draw.clip
         import androidx.compose.ui.graphics.Color
+        import androidx.compose.ui.graphics.ImageBitmap
+        import androidx.compose.ui.graphics.asImageBitmap
+        import androidx.compose.ui.layout.ContentScale
         import androidx.compose.ui.platform.LocalConfiguration
         import androidx.compose.ui.platform.LocalContext
+        import androidx.compose.ui.res.painterResource
         import androidx.compose.ui.text.font.FontWeight
         import androidx.compose.ui.text.style.TextOverflow
         import androidx.compose.ui.unit.dp
         import androidx.compose.ui.unit.sp
+        import com.ottsearch.app.R
         import com.ottsearch.app.core.HangulSearchEngine
         import com.ottsearch.app.ott.OttLauncher
         import com.ottsearch.app.ott.OttType
+        import kotlinx.coroutines.Dispatchers
+        import kotlinx.coroutines.delay
+        import kotlinx.coroutines.withContext
+        import java.net.HttpURLConnection
+        import java.net.URL
 
         data class ContentUiModel(
             val id: Int,
@@ -738,39 +1133,206 @@ jobs:
             val mediaType: String = "영화",
             val activeOtts: Set<OttType>,
             val aliases: List<String> = emptyList(),
-            val popularity: Double = 50.0
+            val popularity: Double = 50.0,
+            val posterUrl: String = "",
+            val providerVerified: Boolean = true
         )
+
+        object PosterBitmapCache {
+            private val cache = LruCache<String, ImageBitmap>(80)
+            fun get(key: String): ImageBitmap? = cache.get(key)
+            fun put(key: String, bmp: ImageBitmap) { cache.put(key, bmp) }
+        }
+
+        @Composable
+        fun PosterThumbnail(item: ContentUiModel, modifier: Modifier = Modifier) {
+            val cacheKey = item.posterUrl.ifBlank { item.titleKo }
+            var imageBitmap by remember(cacheKey) { mutableStateOf(PosterBitmapCache.get(cacheKey)) }
+
+            LaunchedEffect(cacheKey) {
+                if (imageBitmap == null) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val targetUrl = item.posterUrl.ifBlank {
+                                HangulSearchEngine.fetchPosterForTitle(item.titleKo)
+                            }
+                            if (targetUrl.startsWith("http")) {
+                                val conn = URL(targetUrl).openConnection() as HttpURLConnection
+                                conn.connectTimeout = 4000
+                                conn.readTimeout = 4000
+                                conn.doInput = true
+                                conn.connect()
+                                if (conn.responseCode == 200) {
+                                    val bmp = BitmapFactory.decodeStream(conn.inputStream)
+                                    if (bmp != null) {
+                                        val img = bmp.asImageBitmap()
+                                        PosterBitmapCache.put(cacheKey, img)
+                                        imageBitmap = img
+                                    }
+                                }
+                                conn.disconnect()
+                            }
+                        } catch (e: Exception) {}
+                    }
+                }
+            }
+
+            Box(
+                modifier = modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(40, 40, 40)),
+                contentAlignment = Alignment.Center
+            ) {
+                val bmp = imageBitmap
+                if (bmp != null) {
+                    Image(
+                        bitmap = bmp,
+                        contentDescription = item.titleKo,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Text(
+                            text = item.mediaType,
+                            color = Color(229, 9, 20),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = item.titleKo.take(6),
+                            color = Color.LightGray,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+        }
 
         @OptIn(ExperimentalMaterial3Api::class)
         @Composable
         fun MainFoldableScreen(
-            onSearch: (String) -> Unit,
-            results: List<ContentUiModel>,
-            currentQuery: String,
             isAutoSearchEnabled: Boolean
         ) {
             val configuration = LocalConfiguration.current
             val gridColumns = if (configuration.screenWidthDp < 600) 1 else 2
-            var textState by remember { mutableStateOf(currentQuery) }
             val context = LocalContext.current
+
+            var textState by remember { mutableStateOf("") }
+            var selectedProfile by remember { mutableStateOf(OttLauncher.getAutoProfile(context)) }
+            var tmdbKey by remember { mutableStateOf(OttLauncher.getTmdbApiKey(context)) }
+            var showTmdbDialog by remember { mutableStateOf(false) }
+            var results by remember { mutableStateOf(HangulSearchEngine.CATALOG) }
+            var isLoading by remember { mutableStateOf(false) }
+
             val convertedPreview = remember(textState) {
                 val conv = HangulSearchEngine.convertDubeolsik(textState)
                 if (conv != textState && conv.any { it in '가'..'힣' }) conv else ""
             }
 
+            LaunchedEffect(textState, tmdbKey) {
+                val q = textState.trim()
+                if (q.isEmpty()) {
+                    results = HangulSearchEngine.CATALOG
+                    isLoading = false
+                    return@LaunchedEffect
+                }
+                results = HangulSearchEngine.searchLocal(q)
+                isLoading = true
+                delay(280L)
+                val live = withContext(Dispatchers.IO) {
+                    HangulSearchEngine.searchLive(q, tmdbKey)
+                }
+                results = live
+                isLoading = false
+            }
+
+            if (showTmdbDialog) {
+                var inputKey by remember { mutableStateOf(tmdbKey) }
+                AlertDialog(
+                    onDismissRequest = { showTmdbDialog = false },
+                    title = { Text("TMDB API 키 설정 (선택사항)", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column {
+                            Text("TMDB API 키를 입력하면 한국(KR) 실시간 구독 OTT 정보가 연동됩니다. 비워두셔도 기본 실시간 영화 검색과 자동 입력이 작동합니다.", fontSize = 12.sp)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = inputKey,
+                                onValueChange = { inputKey = it },
+                                placeholder = { Text("TMDB API Key (v3 auth)") },
+                                singleLine = true
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            OttLauncher.setTmdbApiKey(context, inputKey)
+                            tmdbKey = inputKey.trim()
+                            showTmdbDialog = false
+                        }) {
+                            Text("저장")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showTmdbDialog = false }) {
+                            Text("닫기")
+                        }
+                    }
+                )
+            }
+
             Scaffold(
                 topBar = {
                     Column(
-                        modifier = Modifier.fillMaxWidth().background(Color(20, 20, 20)).padding(16.dp)
+                        modifier = Modifier.fillMaxWidth().background(Color(20, 20, 20)).padding(horizontal = 14.dp, vertical = 12.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("OTT SEARCH", color = Color(229, 9, 20), fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                            if (isAutoSearchEnabled) {
-                                Text("자동 검색어 입력 ON", color = Color(80, 220, 100), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_dragon_foreground),
+                                    contentDescription = "DragOTT Logo",
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(12, 12, 16))
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("DragOTT", color = Color(229, 9, 20), fontSize = 23.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    color = Color(30, 55, 35),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "보안격리 ON",
+                                        color = Color(100, 230, 120),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (tmdbKey.isNotBlank()) "TMDB 연동중" else "TMDB 키 설정",
+                                    color = Color.LightGray,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(Color(45, 45, 45))
+                                        .clickable { showTmdbDialog = true }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
                             }
                         }
 
@@ -781,31 +1343,27 @@ jobs:
                                 colors = CardDefaults.cardColors(containerColor = Color(45, 30, 30)),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
+                                Column(modifier = Modifier.padding(10.dp)) {
                                     Text(
-                                        text = "OTT 앱 검색창 자동 입력 설정 (최초 1회)",
+                                        text = "접근성 자동 입력 권한을 켜주세요",
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
+                                        fontSize = 12.sp
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "프로필 선택 후 돋보기 이동 및 자동 검색어 입력을 위해 아래 권한을 켜주세요. (제한된 설정 팝업이 뜰 경우 1번 버튼 클릭 -> 우측 상단 점 3개 -> 제한된 설정 허용 후 2번 클릭)",
-                                        color = Color.LightGray,
-                                        fontSize = 11.sp
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Button(
                                             onClick = { OttLauncher.openAppDetailSettings(context) },
-                                            modifier = Modifier.weight(1f),
+                                            modifier = Modifier.weight(1f).height(32.dp),
+                                            contentPadding = PaddingValues(2.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(70, 70, 70))
                                         ) {
                                             Text("1. 제한된 설정 해제", fontSize = 11.sp, color = Color.White)
                                         }
                                         Button(
                                             onClick = { OttLauncher.openAccessibilitySettings(context) },
-                                            modifier = Modifier.weight(1f),
+                                            modifier = Modifier.weight(1f).height(32.dp),
+                                            contentPadding = PaddingValues(2.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(229, 9, 20))
                                         ) {
                                             Text("2. 접근성 권한 켜기", fontSize = 11.sp, color = Color.White)
@@ -815,17 +1373,55 @@ jobs:
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("프로필 자동선택:", color = Color.LightGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            val profileOptions = listOf(
+                                Pair("오승용", "오승용"),
+                                Pair("민트맘", "민트맘"),
+                                Pair("키즈", "키즈"),
+                                Pair("직접선택", "")
+                            )
+                            for ((label, value) in profileOptions) {
+                                val isSelected = selectedProfile == value
+                                Surface(
+                                    color = if (isSelected) Color(229, 9, 20) else Color(40, 40, 40),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.clickable {
+                                        selectedProfile = value
+                                        OttLauncher.setAutoProfile(context, value)
+                                    }
+                                ) {
+                                    Text(
+                                        text = label,
+                                        color = if (isSelected) Color.White else Color.Gray,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = textState,
-                            onValueChange = { textState = it; onSearch(it) },
+                            onValueChange = { textState = it },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("제목 입력 (예: 기생충, 오징어게임, dnjzm xn flapaqj)", color = Color.Gray) },
+                            placeholder = { Text("영화·드라마 제목 입력 (예: 기생충, 오징어게임, dnjzm xn flapaqj)", color = Color.Gray, fontSize = 13.sp) },
                             singleLine = true
                         )
                         if (convertedPreview.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("한영 자동 변환 인식: $convertedPreview", color = Color(100, 200, 255), fontSize = 12.sp)
+                            Text("한영 오타 자동 변환: $convertedPreview", color = Color(100, 200, 255), fontSize = 12.sp)
+                        }
+                        if (isLoading) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("실시간 작품 및 포스터 검색 중...", color = Color(180, 180, 180), fontSize = 11.sp)
                         }
                     }
                 },
@@ -841,60 +1437,94 @@ jobs:
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30))
+                            colors = CardDefaults.cardColors(containerColor = Color(28, 28, 28))
                         ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        color = Color(229, 9, 20),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    PosterThumbnail(
+                                        item = item,
+                                        modifier = Modifier.width(64.dp).height(92.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Surface(
+                                                color = Color(229, 9, 20),
+                                                shape = RoundedCornerShape(4.dp)
+                                            ) {
+                                                Text(
+                                                    text = item.mediaType,
+                                                    color = Color.White,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = item.year,
+                                                color = Color.LightGray,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = item.mediaType,
+                                            text = item.titleKo,
                                             color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 17.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = item.originalTitle,
+                                            color = Color.Gray,
+                                            fontSize = 12.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        val ottStatusText = if (item.providerVerified && item.activeOtts.isNotEmpty()) {
+                                            "제공 확인: " + item.activeOtts.joinToString(", ") { it.displayName }
+                                        } else if (item.providerVerified && item.activeOtts.isEmpty()) {
+                                            "구독 제공 정보 없음 (클릭 시 앱 내 직접 검색)"
+                                        } else {
+                                            "버튼 클릭 시 해당 OTT 앱에서 즉시 자동 검색"
+                                        }
+                                        Text(
+                                            text = ottStatusText,
+                                            color = if (item.activeOtts.isNotEmpty() && item.providerVerified) Color(100, 220, 130) else Color(170, 170, 170),
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = item.titleKo,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "${item.year} · ${item.originalTitle}",
-                                    color = Color.LightGray,
-                                    fontSize = 13.sp
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Spacer(modifier = Modifier.height(10.dp))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     for (ott in OttType.values()) {
-                                        val isAvailable = item.activeOtts.contains(ott)
+                                        val isConfirmed = item.activeOtts.contains(ott)
                                         Button(
                                             onClick = { OttLauncher.launch(context, ott, item.titleKo) },
-                                            enabled = isAvailable,
                                             modifier = Modifier.weight(1f).height(36.dp),
                                             contentPadding = PaddingValues(2.dp),
                                             shape = RoundedCornerShape(6.dp),
                                             colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color(ott.r, ott.g, ott.b),
-                                                disabledContainerColor = Color(50, 50, 50)
+                                                containerColor = if (isConfirmed) Color(ott.r, ott.g, ott.b) else Color(48, 48, 48)
                                             )
                                         ) {
                                             Text(
-                                                text = ott.displayName,
-                                                color = if (isAvailable) Color.White else Color.Gray,
-                                                fontSize = 11.sp,
+                                                text = if (isConfirmed && item.providerVerified) "✓ ${ott.displayName}" else ott.displayName,
+                                                color = if (isConfirmed) Color.White else Color(160, 160, 160),
+                                                fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 maxLines = 1
                                             )
@@ -916,7 +1546,6 @@ jobs:
         import androidx.activity.ComponentActivity
         import androidx.activity.compose.setContent
         import androidx.compose.runtime.*
-        import com.ottsearch.app.core.HangulSearchEngine
         import com.ottsearch.app.ott.OttLauncher
         import com.ottsearch.app.ui.MainFoldableScreen
 
@@ -927,14 +1556,7 @@ jobs:
                 super.onCreate(savedInstanceState)
                 isAutoSearchEnabled = OttLauncher.isAccessibilityEnabled(this)
                 setContent {
-                    var query by remember { mutableStateOf("") }
-                    val results = remember(query) {
-                        HangulSearchEngine.search(query)
-                    }
                     MainFoldableScreen(
-                        onSearch = { query = it },
-                        results = results,
-                        currentQuery = query,
                         isAutoSearchEnabled = isAutoSearchEnabled
                     )
                 }
@@ -951,12 +1573,12 @@ jobs:
             os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content.strip())
-        print("All v2.1 files written cleanly.")
+        print("All DragOTT v3.1 files written cleanly.")
 
     - name: Build Debug APK Directly
       run: |
         if gradle assembleDebug --no-daemon > build.log 2>&1; then
-          echo "### ✅ OTT Search v2.1 (프로필 선택 대기 + 자동 검색 엔진) APK 빌드 성공!" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ DragOTT v3.1 (동양용 트라이벌 아이콘 + 보안격리 + 자동프로필) 빌드 성공!" >> $GITHUB_STEP_SUMMARY
         else
           echo "### ❌ 빌드 오류 상세 원인" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -969,5 +1591,5 @@ jobs:
     - name: Upload APK for Fold8
       uses: actions/upload-artifact@v4
       with:
-        name: OTT-Search-Fold8.apk
+        name: DragOTT-Fold8.apk
         path: app/build/outputs/apk/debug/app-debug.apk
