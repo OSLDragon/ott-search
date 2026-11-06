@@ -83,8 +83,8 @@ jobs:
                 applicationId = "com.ottsearch.app"
                 minSdk = 26
                 targetSdk = 34
-                versionCode = 1
-                versionName = "1.0.0"
+                versionCode = 3
+                versionName = "2.1.0"
             }
 
             buildTypes {
@@ -123,7 +123,19 @@ jobs:
         <?xml version="1.0" encoding="utf-8"?>
         <resources>
             <string name="app_name">OTT Search</string>
+            <string name="accessibility_service_desc">OTT 버튼을 눌렀을 때 프로필 선택 후 자동으로 돋보기(검색)로 이동해 검색어를 입력하고 엔터까지 눌러주는 기능입니다.</string>
         </resources>
+        """
+
+        files["app/src/main/res/xml/accessibility_service_config.xml"] = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+            android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+            android:accessibilityFeedbackType="feedbackGeneric"
+            android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagReportViewIds|flagRetrieveInteractiveWindows"
+            android:canRetrieveWindowContent="true"
+            android:description="@string/accessibility_service_desc"
+            android:notificationTimeout="100" />
         """
 
         files["app/src/main/AndroidManifest.xml"] = """
@@ -142,6 +154,9 @@ jobs:
                     <action android:name="android.intent.action.VIEW" />
                     <data android:scheme="https" />
                 </intent>
+                <intent>
+                    <action android:name="android.intent.action.SEARCH" />
+                </intent>
             </queries>
 
             <application
@@ -158,20 +173,292 @@ jobs:
                         <category android:name="android.intent.category.LAUNCHER" />
                     </intent-filter>
                 </activity>
+
+                <service
+                    android:name="com.ottsearch.app.ott.OttAutoSearchService"
+                    android:exported="true"
+                    android:label="OTT Search 자동 검색 입력기"
+                    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+                    <intent-filter>
+                        <action android:name="android.accessibilityservice.AccessibilityService" />
+                    </intent-filter>
+                    <meta-data
+                        android:name="android.accessibilityservice"
+                        android:resource="@xml/accessibility_service_config" />
+                </service>
             </application>
         </manifest>
+        """
+
+        files["app/src/main/java/com/ottsearch/app/ott/OttAutoSearchService.kt"] = """
+        package com.ottsearch.app.ott
+
+        import android.accessibilityservice.AccessibilityService
+        import android.os.Build
+        import android.os.Bundle
+        import android.os.Handler
+        import android.os.Looper
+        import android.view.accessibility.AccessibilityEvent
+        import android.view.accessibility.AccessibilityNodeInfo
+        import android.widget.Toast
+
+        class OttAutoSearchService : AccessibilityService() {
+
+            companion object {
+                @Volatile var targetPackage: String? = null
+                @Volatile var targetQuery: String? = null
+                @Volatile var startTime: Long = 0L
+                @Volatile var textInjected: Boolean = false
+                @Volatile var textInjectedTime: Long = 0L
+                @Volatile var lastTabClickTime: Long = 0L
+                @Volatile var lastPlaceholderClickTime: Long = 0L
+
+                fun startAutoSearch(pkg: String, query: String) {
+                    targetPackage = pkg
+                    targetQuery = query.trim()
+                    startTime = System.currentTimeMillis()
+                    textInjected = false
+                    textInjectedTime = 0L
+                    lastTabClickTime = 0L
+                    lastPlaceholderClickTime = 0L
+                }
+            }
+
+            private val handler = Handler(Looper.getMainLooper())
+            private val pollRunnable = object : Runnable {
+                override fun run() {
+                    processScreen()
+                    val pkg = targetPackage
+                    if (pkg != null && System.currentTimeMillis() - startTime < 30000L) {
+                        handler.postDelayed(this, 350L)
+                    } else {
+                        targetPackage = null
+                        targetQuery = null
+                    }
+                }
+            }
+
+            override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+                val pkg = targetPackage ?: return
+                if (System.currentTimeMillis() - startTime > 30000L) {
+                    targetPackage = null
+                    targetQuery = null
+                    return
+                }
+                handler.removeCallbacks(pollRunnable)
+                handler.post(pollRunnable)
+            }
+
+            override fun onInterrupt() {}
+
+            private fun processScreen() {
+                val pkg = targetPackage ?: return
+                val query = targetQuery ?: return
+                val now = System.currentTimeMillis()
+                if (now - startTime > 30000L) {
+                    targetPackage = null
+                    targetQuery = null
+                    return
+                }
+
+                val root = rootInActiveWindow ?: return
+                val currentPkg = root.packageName?.toString() ?: ""
+                if (currentPkg != pkg) return
+
+                // [프로필 선택 화면 감지] 사용자가 프로필(오승용, 민트맘 등)을 선택할 때까지 대기 시간 연장하며 홀드
+                if (isProfileSelectionScreen(root)) {
+                    startTime = now
+                    return
+                }
+
+                val editNode = findEditableNode(root)
+                if (editNode != null) {
+                    if (!textInjected) {
+                        performClickOnNodeOrParent(editNode)
+                        editNode.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+                        val args = Bundle()
+                        args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, query)
+                        val ok = editNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                        if (!ok) {
+                            editNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+                        }
+                        textInjected = true
+                        textInjectedTime = now
+                        return
+                    } else if (now - textInjectedTime >= 400L) {
+                        val currentText = editNode.text?.toString() ?: ""
+                        if (!currentText.contains(query.take(1))) {
+                            val args = Bundle()
+                            args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, query)
+                            editNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                        }
+                        editNode.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+                        if (Build.VERSION.SDK_INT >= 30) {
+                            editNode.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id)
+                        }
+                        val submitBtn = findSubmitButton(root, editNode)
+                        if (submitBtn != null) {
+                            performClickOnNodeOrParent(submitBtn)
+                        }
+                        Toast.makeText(applicationContext, "‘$query’ 자동 검색 완료!", Toast.LENGTH_SHORT).show()
+                        targetPackage = null
+                        targetQuery = null
+                        return
+                    }
+                    return
+                }
+
+                if (now - lastPlaceholderClickTime > 1000L) {
+                    val placeholder = findSearchBoxPlaceholder(root)
+                    if (placeholder != null) {
+                        if (performClickOnNodeOrParent(placeholder)) {
+                            lastPlaceholderClickTime = now
+                            return
+                        }
+                    }
+                }
+
+                if (now - lastTabClickTime > 1300L) {
+                    val searchTab = findSearchTabOrIcon(root)
+                    if (searchTab != null) {
+                        if (performClickOnNodeOrParent(searchTab)) {
+                            lastTabClickTime = now
+                            return
+                        }
+                    }
+                }
+            }
+
+            private fun isProfileSelectionScreen(node: AccessibilityNodeInfo?): Boolean {
+                if (node == null) return false
+                if (node.isVisibleToUser) {
+                    val t = node.text?.toString() ?: ""
+                    val cd = node.contentDescription?.toString() ?: ""
+                    val combined = "$t $cd"
+                    if (combined.contains("프로필을 선택") || combined.contains("프로필 선택") ||
+                        combined.contains("시청할 프로필") || combined.contains("누가 시청") ||
+                        combined.contains("프로필 관리") || combined.lowercase().contains("who's watching")) {
+                        return true
+                    }
+                }
+                for (i in 0 until node.childCount) {
+                    if (isProfileSelectionScreen(node.getChild(i))) return true
+                }
+                return false
+            }
+
+            private fun findEditableNode(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+                if (node == null) return null
+                if (!node.isVisibleToUser || node.isPassword) return null
+                val cls = node.className?.toString() ?: ""
+                val canSetText = node.actionList?.any { it.id == AccessibilityNodeInfo.ACTION_SET_TEXT } == true
+                if (node.isEditable || canSetText || cls.contains("EditText", ignoreCase = true) || cls.contains("AutoComplete", ignoreCase = true)) {
+                    return node
+                }
+                for (i in 0 until node.childCount) {
+                    val found = findEditableNode(node.getChild(i))
+                    if (found != null) return found
+                }
+                return null
+            }
+
+            private fun findSearchBoxPlaceholder(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+                if (node == null || !node.isVisibleToUser) return null
+                val t = node.text?.toString() ?: ""
+                val cd = node.contentDescription?.toString() ?: ""
+                val hint = if (Build.VERSION.SDK_INT >= 26) node.hintText?.toString() ?: "" else ""
+                val combined = "$t $cd $hint"
+                val viewId = node.viewIdResourceName?.lowercase() ?: ""
+
+                val hasHintWord = combined.contains("검색어") || combined.contains("입력") ||
+                    combined.contains("제목, 캐릭터") || combined.contains("제목, 장르") ||
+                    combined.contains("출연진") || combined.contains("찾아보세요") ||
+                    combined.contains("콘텐츠, 인물") || combined.lowercase().contains("search by")
+                val hasBoxId = viewId.contains("search_bar") || viewId.contains("search_box") ||
+                    viewId.contains("search_src_text") || viewId.contains("search_edit") ||
+                    viewId.contains("et_search") || viewId.contains("search_input") ||
+                    viewId.contains("search_text")
+
+                if (hasHintWord || hasBoxId) {
+                    return node
+                }
+                for (i in 0 until node.childCount) {
+                    val found = findSearchBoxPlaceholder(node.getChild(i))
+                    if (found != null) return found
+                }
+                return null
+            }
+
+            private fun findSearchTabOrIcon(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+                if (node == null || !node.isVisibleToUser) return null
+                val t = node.text?.toString()?.trim() ?: ""
+                val cd = node.contentDescription?.toString()?.trim() ?: ""
+                val viewId = node.viewIdResourceName?.lowercase() ?: ""
+
+                val isExactLabel = t.equals("검색", ignoreCase = true) || t.equals("search", ignoreCase = true) ||
+                    cd.equals("검색", ignoreCase = true) || cd.equals("search", ignoreCase = true) ||
+                    cd.contains("검색 버튼") || cd.contains("검색 탭") || cd.contains("검색하기")
+                val isSearchId = viewId.contains("search") && (
+                    viewId.contains("tab") || viewId.contains("menu") ||
+                    viewId.contains("btn") || viewId.contains("icon") ||
+                    viewId.contains("action") || viewId.contains("nav") ||
+                    viewId.endsWith("/search")
+                )
+
+                if (isExactLabel || isSearchId) {
+                    return node
+                }
+                for (i in 0 until node.childCount) {
+                    val found = findSearchTabOrIcon(node.getChild(i))
+                    if (found != null) return found
+                }
+                return null
+            }
+
+            private fun findSubmitButton(node: AccessibilityNodeInfo?, editNode: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+                if (node == null || !node.isVisibleToUser || node == editNode) return null
+                val viewId = node.viewIdResourceName?.lowercase() ?: ""
+                val cd = node.contentDescription?.toString()?.trim() ?: ""
+                val isClearBtn = viewId.contains("clear") || viewId.contains("close") || viewId.contains("delete") ||
+                    cd.contains("지우기") || cd.contains("삭제") || cd.contains("닫기") || cd.lowercase().contains("clear")
+                if (!isClearBtn) {
+                    val isSubmit = (viewId.contains("btn_search") || viewId.contains("search_btn") || viewId.contains("iv_search")) &&
+                        node.isClickable
+                    if (isSubmit) return node
+                }
+                for (i in 0 until node.childCount) {
+                    val found = findSubmitButton(node.getChild(i), editNode)
+                    if (found != null) return found
+                }
+                return null
+            }
+
+            private fun performClickOnNodeOrParent(node: AccessibilityNodeInfo?): Boolean {
+                var curr = node
+                var depth = 0
+                while (curr != null && depth < 6) {
+                    if (curr.isClickable) {
+                        if (curr.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+                    }
+                    curr = curr.parent
+                    depth++
+                }
+                return node?.performAction(AccessibilityNodeInfo.ACTION_CLICK) ?: false
+            }
+        }
         """
 
         files["app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt"] = """
         package com.ottsearch.app.ott
 
+        import android.app.SearchManager
         import android.content.ClipData
         import android.content.ClipboardManager
         import android.content.Context
         import android.content.Intent
         import android.net.Uri
+        import android.provider.Settings
         import android.widget.Toast
-        import java.net.URLEncoder
 
         enum class OttType(val displayName: String, val packageName: String, val r: Int, val g: Int, val b: Int) {
             NETFLIX("Netflix", "com.netflix.mediaclient", 229, 9, 20),
@@ -181,8 +468,33 @@ jobs:
         }
 
         object OttLauncher {
+            fun isAccessibilityEnabled(context: Context): Boolean {
+                val enabledServices = Settings.Secure.getString(
+                    context.contentResolver,
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+                ) ?: return false
+                return enabledServices.contains(context.packageName)
+            }
+
+            fun openAccessibilitySettings(context: Context) {
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            }
+
+            fun openAppDetailSettings(context: Context) {
+                val intent = Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:${context.packageName}")
+                ).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            }
+
             fun launch(context: Context, ott: OttType, searchQuery: String) {
-                val encodedQuery = URLEncoder.encode(searchQuery.trim(), "UTF-8")
+                val cleanQuery = searchQuery.trim()
                 val pm = context.packageManager
                 val isInstalled = try {
                     pm.getPackageInfo(ott.packageName, 0)
@@ -191,7 +503,7 @@ jobs:
                     false
                 }
 
-                copyToClipboard(context, searchQuery)
+                copyToClipboard(context, cleanQuery)
 
                 if (!isInstalled) {
                     Toast.makeText(context, "${ott.displayName} 앱이 설치되어 있지 않아 스토어로 이동합니다.", Toast.LENGTH_SHORT).show()
@@ -199,22 +511,20 @@ jobs:
                     return
                 }
 
-                val intent = when (ott) {
-                    OttType.NETFLIX -> Intent(Intent.ACTION_VIEW, Uri.parse("netflix://search?query=$encodedQuery")).apply { setPackage(ott.packageName) }
-                    OttType.WAVVE -> Intent(Intent.ACTION_VIEW, Uri.parse("https://www.wavve.com/search?searchWord=$encodedQuery")).apply { setPackage(ott.packageName) }
-                    OttType.COUPANG_PLAY -> pm.getLaunchIntentForPackage(ott.packageName)
-                    OttType.DISNEY_PLUS -> pm.getLaunchIntentForPackage(ott.packageName)
-                }
+                OttAutoSearchService.startAutoSearch(ott.packageName, cleanQuery)
 
                 try {
-                    if (intent != null && intent.resolveActivity(pm) != null) {
-                        context.startActivity(intent)
-                    } else {
-                        pm.getLaunchIntentForPackage(ott.packageName)?.let { context.startActivity(it) }
+                    val launchIntent = pm.getLaunchIntentForPackage(ott.packageName)?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     }
-                    Toast.makeText(context, "‘$searchQuery’ 복사 완료! 검색창에 바로 붙여넣으세요.", Toast.LENGTH_SHORT).show()
+                    if (launchIntent != null) {
+                        context.startActivity(launchIntent)
+                    }
+                    if (!isAccessibilityEnabled(context)) {
+                        Toast.makeText(context, "상단의 ‘2. 접근성 권한 켜기’를 활성화하면 프로필 선택 후에도 자동 검색됩니다!", Toast.LENGTH_LONG).show()
+                    }
                 } catch (e: Exception) {
-                    pm.getLaunchIntentForPackage(ott.packageName)?.let { context.startActivity(it) }
+                    Toast.makeText(context, "${ott.displayName} 실행 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -384,8 +694,8 @@ jobs:
                         ContentUiModel(
                             id = 999,
                             titleKo = directTitle,
-                            originalTitle = "OTT 앱 직접 검색",
-                            year = "바로가기",
+                            originalTitle = "4대 OTT 앱에서 직접 자동 검색",
+                            year = "자동입력",
                             mediaType = "직접검색",
                             activeOtts = setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY, OttType.DISNEY_PLUS)
                         )
@@ -436,7 +746,8 @@ jobs:
         fun MainFoldableScreen(
             onSearch: (String) -> Unit,
             results: List<ContentUiModel>,
-            currentQuery: String
+            currentQuery: String,
+            isAutoSearchEnabled: Boolean
         ) {
             val configuration = LocalConfiguration.current
             val gridColumns = if (configuration.screenWidthDp < 600) 1 else 2
@@ -452,13 +763,64 @@ jobs:
                     Column(
                         modifier = Modifier.fillMaxWidth().background(Color(20, 20, 20)).padding(16.dp)
                     ) {
-                        Text("OTT SEARCH", color = Color(229, 9, 20), fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("OTT SEARCH", color = Color(229, 9, 20), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                            if (isAutoSearchEnabled) {
+                                Text("자동 검색어 입력 ON", color = Color(80, 220, 100), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        if (!isAutoSearchEnabled) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color(45, 30, 30)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = "OTT 앱 검색창 자동 입력 설정 (최초 1회)",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "프로필 선택 후 돋보기 이동 및 자동 검색어 입력을 위해 아래 권한을 켜주세요. (제한된 설정 팝업이 뜰 경우 1번 버튼 클릭 -> 우측 상단 점 3개 -> 제한된 설정 허용 후 2번 클릭)",
+                                        color = Color.LightGray,
+                                        fontSize = 11.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Button(
+                                            onClick = { OttLauncher.openAppDetailSettings(context) },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(70, 70, 70))
+                                        ) {
+                                            Text("1. 제한된 설정 해제", fontSize = 11.sp, color = Color.White)
+                                        }
+                                        Button(
+                                            onClick = { OttLauncher.openAccessibilitySettings(context) },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(229, 9, 20))
+                                        ) {
+                                            Text("2. 접근성 권한 켜기", fontSize = 11.sp, color = Color.White)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
                         OutlinedTextField(
                             value = textState,
                             onValueChange = { textState = it; onSearch(it) },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("제목 입력 (예: 기생충, 언터처블, dnjzm xn flapaqj)", color = Color.Gray) },
+                            placeholder = { Text("제목 입력 (예: 기생충, 오징어게임, dnjzm xn flapaqj)", color = Color.Gray) },
                             singleLine = true
                         )
                         if (convertedPreview.isNotEmpty()) {
@@ -555,11 +917,15 @@ jobs:
         import androidx.activity.compose.setContent
         import androidx.compose.runtime.*
         import com.ottsearch.app.core.HangulSearchEngine
+        import com.ottsearch.app.ott.OttLauncher
         import com.ottsearch.app.ui.MainFoldableScreen
 
         class MainActivity : ComponentActivity() {
+            private var isAutoSearchEnabled by mutableStateOf(false)
+
             override fun onCreate(savedInstanceState: Bundle?) {
                 super.onCreate(savedInstanceState)
+                isAutoSearchEnabled = OttLauncher.isAccessibilityEnabled(this)
                 setContent {
                     var query by remember { mutableStateOf("") }
                     val results = remember(query) {
@@ -568,9 +934,15 @@ jobs:
                     MainFoldableScreen(
                         onSearch = { query = it },
                         results = results,
-                        currentQuery = query
+                        currentQuery = query,
+                        isAutoSearchEnabled = isAutoSearchEnabled
                     )
                 }
+            }
+
+            override fun onResume() {
+                super.onResume()
+                isAutoSearchEnabled = OttLauncher.isAccessibilityEnabled(this)
             }
         }
         """
@@ -579,12 +951,12 @@ jobs:
             os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content.strip())
-        print("All files written cleanly without escape errors.")
+        print("All v2.1 files written cleanly.")
 
     - name: Build Debug APK Directly
       run: |
         if gradle assembleDebug --no-daemon > build.log 2>&1; then
-          echo "### ✅ OTT Search APK 빌드 성공!" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ OTT Search v2.1 (프로필 선택 대기 + 자동 검색 엔진) APK 빌드 성공!" >> $GITHUB_STEP_SUMMARY
         else
           echo "### ❌ 빌드 오류 상세 원인" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
