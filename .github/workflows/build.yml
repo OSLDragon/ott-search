@@ -19,10 +19,11 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Set up Gradle 8.5
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.5'
+    - name: Install Gradle 8.5
+      run: |
+        curl -sL https://services.gradle.org/distributions/gradle-8.5-bin.zip -o gradle.zip
+        unzip -q gradle.zip -d /tmp
+        echo "/tmp/gradle-8.5/bin" >> $GITHUB_PATH
 
     - name: Configure Android SDK Path
       run: |
@@ -35,7 +36,15 @@ jobs:
 
         files = {}
 
-        files["settings.gradle.kts"] = """pluginManagement {
+        files["gradle.properties"] = """
+        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+        android.useAndroidX=true
+        kotlin.code.style=official
+        android.nonTransitiveRClass=true
+        """
+
+        files["settings.gradle.kts"] = """
+        pluginManagement {
             repositories {
                 google()
                 mavenCentral()
@@ -53,13 +62,15 @@ jobs:
         include(":app")
         """
 
-        files["build.gradle.kts"] = """plugins {
+        files["build.gradle.kts"] = """
+        plugins {
             id("com.android.application") version "8.2.2" apply false
             id("org.jetbrains.kotlin.android") version "1.9.22" apply false
         }
         """
 
-        files["app/build.gradle.kts"] = """plugins {
+        files["app/build.gradle.kts"] = """
+        plugins {
             id("com.android.application")
             id("org.jetbrains.kotlin.android")
         }
@@ -98,27 +109,26 @@ jobs:
 
         dependencies {
             implementation("androidx.core:core-ktx:1.12.0")
-            implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-            implementation("androidx.activity:activity-compose:1.8.2")
-            implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+            implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+            implementation("androidx.activity:activity-compose:1.8.1")
+            implementation(platform("androidx.compose:compose-bom:2023.10.01"))
             implementation("androidx.compose.ui:ui")
             implementation("androidx.compose.ui:ui-graphics")
-            implementation("androidx.compose.ui:ui-tooling-preview")
             implementation("androidx.compose.material3:material3")
             implementation("androidx.compose.foundation:foundation")
-            implementation("io.coil-kt:coil-compose:2.5.0")
         }
         """
 
-        files["app/src/main/res/values/strings.xml"] = """<?xml version="1.0" encoding="utf-8"?>
+        files["app/src/main/res/values/strings.xml"] = """
+        <?xml version="1.0" encoding="utf-8"?>
         <resources>
             <string name="app_name">OTT Search</string>
         </resources>
         """
 
-        files["app/src/main/AndroidManifest.xml"] = """<?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.ottsearch.app">
+        files["app/src/main/AndroidManifest.xml"] = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -140,7 +150,7 @@ jobs:
                 android:supportsRtl="true"
                 android:theme="@android:style/Theme.Material.NoActionBar">
                 <activity
-                    android:name=".MainActivity"
+                    android:name="com.ottsearch.app.MainActivity"
                     android:exported="true"
                     android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
                     <intent-filter>
@@ -152,65 +162,8 @@ jobs:
         </manifest>
         """
 
-        files["app/src/main/java/com/ottsearch/app/MainActivity.kt"] = """package com.ottsearch.app
-
-        import android.os.Bundle
-        import androidx.activity.ComponentActivity
-        import androidx.activity.compose.setContent
-        import androidx.compose.runtime.*
-        import com.ottsearch.app.ui.MainFoldableScreen
-        import com.ottsearch.app.ui.ContentUiModel
-        import com.ottsearch.app.ott.OttType
-        import com.ottsearch.app.core.HangulSearchEngine
-
-        class MainActivity : ComponentActivity() {
-            override fun onCreate(savedInstanceState: Bundle?) {
-                super.onCreate(savedInstanceState)
-                setContent {
-                    var query by remember { mutableStateOf("") }
-                    val dummyList = remember(query) {
-                        if (query.isBlank()) emptyList()
-                        else {
-                            val converted = HangulSearchEngine.convertDubeolsik(query)
-                            val effective = if (converted.isNotBlank()) converted else query
-                            listOf(
-                                ContentUiModel(
-                                    id = 1,
-                                    titleKo = when {
-                                        effective.contains("언터처블") || effective.contains("Intouchables") -> "언터처블: 1%의 우정"
-                                        effective.contains("리멤버") || effective.contains("워크") -> "워크 투 리멤버"
-                                        effective.contains("부산") || effective.contains("Busan") -> "부산행"
-                                        else -> "기생충"
-                                    },
-                                    originalTitle = when {
-                                        effective.contains("언터처블") || effective.contains("Intouchables") -> "The Intouchables"
-                                        effective.contains("리멤버") || effective.contains("워크") -> "A Walk to Remember"
-                                        effective.contains("부산") || effective.contains("Busan") -> "Train to Busan"
-                                        else -> "Parasite"
-                                    },
-                                    year = when {
-                                        effective.contains("언터처블") || effective.contains("Intouchables") -> "2011"
-                                        effective.contains("리멤버") || effective.contains("워크") -> "2002"
-                                        effective.contains("부산") || effective.contains("Busan") -> "2016"
-                                        else -> "2019"
-                                    },
-                                    posterUrl = "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-                                    activeOtts = setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY, OttType.DISNEY_PLUS)
-                                )
-                            )
-                        }
-                    }
-                    MainFoldableScreen(
-                        onSearch = { query = it },
-                        results = dummyList,
-                        currentQuery = query
-                    )
-                }
-            }
-        }
-        """
-
-        files["app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt"] = """package com.ottsearch.app.ott
+        files["app/src/main/java/com/ottsearch/app/ott/OttLauncher.kt"] = """
+        package com.ottsearch.app.ott
 
         import android.content.ClipData
         import android.content.ClipboardManager
@@ -220,11 +173,11 @@ jobs:
         import android.widget.Toast
         import java.net.URLEncoder
 
-        enum class OttType(val displayName: String, val packageName: String, val colorHex: Int) {
-            NETFLIX("Netflix", "com.netflix.mediaclient", 0xFFE50914.toInt()),
-            WAVVE("Wavve", "kr.co.captv.pooqV2", 0xFF1353FA.toInt()),
-            COUPANG_PLAY("Coupang Play", "com.coupang.mobile.play", 0xFF00A0E9.toInt()),
-            DISNEY_PLUS("Disney+", "com.disney.disneyplus", 0xFF113CCF.toInt())
+        enum class OttType(val displayName: String, val packageName: String, val r: Int, val g: Int, val b: Int) {
+            NETFLIX("Netflix", "com.netflix.mediaclient", 229, 9, 20),
+            WAVVE("Wavve", "kr.co.captv.pooqV2", 19, 83, 250),
+            COUPANG_PLAY("Coupang Play", "com.coupang.mobile.play", 0, 160, 233),
+            DISNEY_PLUS("Disney+", "com.disney.disneyplus", 17, 60, 207)
         }
 
         object OttLauncher {
@@ -241,7 +194,7 @@ jobs:
                 copyToClipboard(context, searchQuery)
 
                 if (!isInstalled) {
-                    Toast.makeText(context, "${ott.displayName} 앱이 설치되어 있지 않습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "${ott.displayName} 앱이 설치되어 있지 않아 스토어로 이동합니다.", Toast.LENGTH_SHORT).show()
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ott.packageName}")))
                     return
                 }
@@ -272,7 +225,11 @@ jobs:
         }
         """
 
-        files["app/src/main/java/com/ottsearch/app/core/HangulSearchEngine.kt"] = """package com.ottsearch.app.core
+        files["app/src/main/java/com/ottsearch/app/core/HangulSearchEngine.kt"] = """
+        package com.ottsearch.app.core
+
+        import com.ottsearch.app.ott.OttType
+        import com.ottsearch.app.ui.ContentUiModel
 
         object HangulSearchEngine {
             private val ENG_TO_KOR = mapOf(
@@ -283,6 +240,33 @@ jobs:
             )
             private val CHOSUNG = listOf('ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ')
             private val JUNGSUNG = listOf('ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ')
+            private val JONGSUNG = listOf("", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅁ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ")
+
+            private val COMPLEX_VOWEL = mapOf(
+                Pair('ㅗ', 'ㅏ') to 'ㅘ', Pair('ㅗ', 'ㅐ') to 'ㅙ', Pair('ㅗ', 'ㅣ') to 'ㅚ',
+                Pair('ㅜ', 'ㅓ') to 'ㅝ', Pair('ㅜ', 'ㅔ') to 'ㅞ', Pair('ㅜ', 'ㅣ') to 'ㅟ',
+                Pair('ㅡ', 'ㅣ') to 'ㅢ'
+            )
+
+            private val COMPLEX_CONSONANT = mapOf(
+                Pair('ㄱ', 'ㅅ') to "ㄳ", Pair('ㄴ', 'ㅈ') to "ㄵ", Pair('ㄴ', 'ㅎ') to "ㄶ",
+                Pair('ㄹ', 'ㄱ') to "ㄺ", Pair('ㄹ', 'ㅁ') to "ㄻ", Pair('ㄹ', 'ㅂ') to "ㄼ",
+                Pair('ㄹ', 'ㅅ') to "ㄽ", Pair('ㄹ', 'ㅌ') to "ㄾ", Pair('ㄹ', 'ㅍ') to "ㄿ",
+                Pair('ㄹ', 'ㅎ') to "ㅀ", Pair('ㅂ', 'ㅅ') to "ㅄ"
+            )
+
+            private val CATALOG = listOf(
+                ContentUiModel(1, "기생충", "Parasite", "2019", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("기생충"), 95.0),
+                ContentUiModel(2, "부산행", "Train to Busan", "2016", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("부산행"), 88.0),
+                ContentUiModel(3, "언터처블: 1%의 우정", "The Intouchables", "2011", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("언터처블", "1%의 우정", "Intouchables"), 98.0),
+                ContentUiModel(4, "언터처블", "The Untouchables", "1987", "영화", setOf(OttType.WAVVE), listOf("언터처블 1987"), 40.0),
+                ContentUiModel(5, "워크 투 리멤버", "A Walk to Remember", "2002", "영화", setOf(OttType.WAVVE, OttType.COUPANG_PLAY), listOf("워크투리멤버"), 85.0),
+                ContentUiModel(6, "무빙", "Moving", "2023", "시리즈", setOf(OttType.DISNEY_PLUS), listOf("무빙"), 94.0),
+                ContentUiModel(7, "오징어 게임", "Squid Game", "2021", "시리즈", setOf(OttType.NETFLIX), listOf("오징어게임"), 96.0),
+                ContentUiModel(8, "더 글로리", "The Glory", "2022", "시리즈", setOf(OttType.NETFLIX), listOf("더글로리"), 92.0),
+                ContentUiModel(9, "소년시대", "Boyhood", "2023", "시리즈", setOf(OttType.COUPANG_PLAY), listOf("소년시대"), 89.0),
+                ContentUiModel(10, "파묘", "Exhuma", "2024", "영화", setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY), listOf("파묘"), 91.0)
+            )
 
             fun convertDubeolsik(input: String): String {
                 val strokes = StringBuilder()
@@ -290,14 +274,48 @@ jobs:
                 val s = strokes.toString()
                 val result = StringBuilder()
                 var i = 0
-                while (i < s.length) {
+                val n = s.length
+                while (i < n) {
                     val c = s[i]
-                    if (c in CHOSUNG && i + 1 < s.length && s[i + 1] in JUNGSUNG) {
-                        val choIdx = CHOSUNG.indexOf(c)
-                        val jungIdx = JUNGSUNG.indexOf(s[i + 1])
-                        val unicode = 0xAC00 + (choIdx * 21 + jungIdx) * 28
-                        result.append(unicode.toChar())
-                        i += 2
+                    if (c in CHOSUNG) {
+                        val cho = c
+                        if (i + 1 < n && s[i + 1] in JUNGSUNG) {
+                            var jung = s[i + 1]
+                            i += 2
+                            if (i < n && COMPLEX_VOWEL.containsKey(Pair(jung, s[i]))) {
+                                jung = COMPLEX_VOWEL[Pair(jung, s[i])]!!
+                                i += 1
+                            }
+                            var jong = ""
+                            if (i < n && JONGSUNG.contains(s[i].toString()) && s[i].toString().isNotEmpty()) {
+                                if (!(i + 1 < n && s[i + 1] in JUNGSUNG)) {
+                                    jong = s[i].toString()
+                                    i += 1
+                                    if (i < n && COMPLEX_CONSONANT.containsKey(Pair(jong[0], s[i]))) {
+                                        if (!(i + 1 < n && s[i + 1] in JUNGSUNG)) {
+                                            jong = COMPLEX_CONSONANT[Pair(jong[0], s[i])]!!
+                                            i += 1
+                                        }
+                                    }
+                                }
+                            }
+                            val choIdx = CHOSUNG.indexOf(cho)
+                            val jungIdx = JUNGSUNG.indexOf(jung)
+                            val jongIdx = JONGSUNG.indexOf(jong)
+                            val unicode = 0xAC00 + (choIdx * 21 + jungIdx) * 28 + jongIdx
+                            result.append(unicode.toChar())
+                        } else {
+                            result.append(cho)
+                            i += 1
+                        }
+                    } else if (c in JUNGSUNG) {
+                        var jung = c
+                        i += 1
+                        if (i < n && COMPLEX_VOWEL.containsKey(Pair(jung, s[i]))) {
+                            jung = COMPLEX_VOWEL[Pair(jung, s[i])]!!
+                            i += 1
+                        }
+                        result.append(jung)
                     } else {
                         result.append(c)
                         i += 1
@@ -305,10 +323,81 @@ jobs:
                 }
                 return result.toString()
             }
+
+            private fun norm(s: String): String = s.filter { !it.isWhitespace() }.lowercase()
+
+            private fun levenshtein(s1: String, s2: String): Int {
+                val dp = Array(s1.length + 1) { IntArray(s2.length + 1) }
+                for (i in 0..s1.length) dp[i][0] = i
+                for (j in 0..s2.length) dp[0][j] = j
+                for (i in 1..s1.length) {
+                    for (j in 1..s2.length) {
+                        val cost = if (s1[i - 1] == s2[j - 1]) 0 else 1
+                        dp[i][j] = minOf(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost)
+                    }
+                }
+                return dp[s1.length][s2.length]
+            }
+
+            fun search(query: String): List<ContentUiModel> {
+                val qRaw = query.trim()
+                if (qRaw.isEmpty()) return CATALOG
+                val qNorm = norm(qRaw)
+                val qConv = convertDubeolsik(qRaw)
+                val qConvNorm = norm(qConv)
+
+                val scored = mutableListOf<Pair<ContentUiModel, Double>>()
+                for (item in CATALOG) {
+                    val candidates = mutableListOf(Pair(item.titleKo, 1.0), Pair(item.originalTitle, 0.95))
+                    for (al in item.aliases) candidates.add(Pair(al, 1.0))
+
+                    var best = 0.0
+                    for ((cand, w) in candidates) {
+                        val cRaw = cand.trim()
+                        val cNorm = norm(cRaw)
+                        val tier = when {
+                            qRaw.equals(cRaw, ignoreCase = true) -> 10000.0
+                            qNorm == cNorm -> 8000.0
+                            qConv.isNotEmpty() && (qConv.equals(cRaw, ignoreCase = true) || qConvNorm == cNorm) -> 7500.0
+                            cNorm.startsWith(qNorm) || qConvNorm.startsWith(cNorm) || cNorm.startsWith(qConvNorm) -> 5000.0
+                            cNorm.contains(qNorm) || (qConvNorm.isNotEmpty() && cNorm.contains(qConvNorm)) -> 3000.0
+                            else -> {
+                                val d1 = levenshtein(qNorm, cNorm)
+                                val d2 = if (qConvNorm.isNotEmpty()) levenshtein(qConvNorm, cNorm) else 99
+                                val d = minOf(d1, d2)
+                                val m = maxOf(qNorm.length, cNorm.length)
+                                if (m > 0 && d <= 2) (1.0 - d.toDouble() / m) * 2000.0 else 0.0
+                            }
+                        }
+                        val s = tier * w
+                        if (s > best) best = s
+                    }
+                    if (best > 0.0) {
+                        scored.add(Pair(item, best + item.popularity * 10.0))
+                    }
+                }
+
+                val sorted = scored.sortedByDescending { it.second }.map { it.first }.toMutableList()
+                val directTitle = if (qConv != qRaw && qConv.any { it in '가'..'힣' }) qConv else qRaw
+                if (sorted.isEmpty()) {
+                    sorted.add(
+                        ContentUiModel(
+                            id = 999,
+                            titleKo = directTitle,
+                            originalTitle = "OTT 앱 직접 검색",
+                            year = "바로가기",
+                            mediaType = "직접검색",
+                            activeOtts = setOf(OttType.NETFLIX, OttType.WAVVE, OttType.COUPANG_PLAY, OttType.DISNEY_PLUS)
+                        )
+                    )
+                }
+                return sorted
+            }
         }
         """
 
-        files["app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt"] = """package com.ottsearch.app.ui
+        files["app/src/main/java/com/ottsearch/app/ui/MainFoldableScreen.kt"] = """
+        package com.ottsearch.app.ui
 
         import androidx.compose.foundation.background
         import androidx.compose.foundation.layout.*
@@ -318,15 +407,16 @@ jobs:
         import androidx.compose.foundation.shape.RoundedCornerShape
         import androidx.compose.material3.*
         import androidx.compose.runtime.*
+        import androidx.compose.ui.Alignment
         import androidx.compose.ui.Modifier
-        import androidx.compose.ui.draw.clip
         import androidx.compose.ui.graphics.Color
         import androidx.compose.ui.platform.LocalConfiguration
         import androidx.compose.ui.platform.LocalContext
         import androidx.compose.ui.text.font.FontWeight
+        import androidx.compose.ui.text.style.TextOverflow
         import androidx.compose.ui.unit.dp
         import androidx.compose.ui.unit.sp
-        import coil.compose.AsyncImage
+        import com.ottsearch.app.core.HangulSearchEngine
         import com.ottsearch.app.ott.OttLauncher
         import com.ottsearch.app.ott.OttType
 
@@ -335,10 +425,13 @@ jobs:
             val titleKo: String,
             val originalTitle: String,
             val year: String,
-            val posterUrl: String?,
-            val activeOtts: Set<OttType>
+            val mediaType: String = "영화",
+            val activeOtts: Set<OttType>,
+            val aliases: List<String> = emptyList(),
+            val popularity: Double = 50.0
         )
 
+        @OptIn(ExperimentalMaterial3Api::class)
         @Composable
         fun MainFoldableScreen(
             onSearch: (String) -> Unit,
@@ -346,60 +439,103 @@ jobs:
             currentQuery: String
         ) {
             val configuration = LocalConfiguration.current
-            val gridColumns = if (configuration.screenWidthDp < 600) 2 else 4
+            val gridColumns = if (configuration.screenWidthDp < 600) 1 else 2
             var textState by remember { mutableStateOf(currentQuery) }
             val context = LocalContext.current
+            val convertedPreview = remember(textState) {
+                val conv = HangulSearchEngine.convertDubeolsik(textState)
+                if (conv != textState && conv.any { it in '가'..'힣' }) conv else ""
+            }
 
             Scaffold(
                 topBar = {
                     Column(
-                        modifier = Modifier.fillMaxWidth().background(Color(0xFF141414.toInt())).padding(16.dp)
+                        modifier = Modifier.fillMaxWidth().background(Color(20, 20, 20)).padding(16.dp)
                     ) {
-                        Text("OTT SEARCH", color = Color(0xFFE50914.toInt()), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text("OTT SEARCH", color = Color(229, 9, 20), fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = textState,
                             onValueChange = { textState = it; onSearch(it) },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("기생충, 언터처블, dnjzm xn flapaqj 등 검색") },
+                            placeholder = { Text("제목 입력 (예: 기생충, 언터처블, dnjzm xn flapaqj)", color = Color.Gray) },
                             singleLine = true
                         )
+                        if (convertedPreview.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("한영 자동 변환 인식: $convertedPreview", color = Color(100, 200, 255), fontSize = 12.sp)
+                        }
                     }
                 },
-                containerColor = Color(0xFF0F0F0F.toInt())
+                containerColor = Color(15, 15, 15)
             ) { paddingValues ->
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(gridColumns),
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(results) { item ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E.toInt()))
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(30, 30, 30))
                         ) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                AsyncImage(
-                                    model = item.posterUrl,
-                                    contentDescription = item.titleKo,
-                                    modifier = Modifier.fillMaxWidth().aspectRatio(2f/3f).clip(RoundedCornerShape(6.dp))
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        color = Color(229, 9, 20),
+                                        shape = RoundedCornerShape(4.dp)
+                                    ) {
+                                        Text(
+                                            text = item.mediaType,
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = item.titleKo,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${item.year} · ${item.originalTitle}",
+                                    color = Color.LightGray,
+                                    fontSize = 13.sp
                                 )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(item.titleKo, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("${item.year} · ${item.originalTitle}", color = Color.Gray, fontSize = 11.sp)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
                                     for (ott in OttType.values()) {
+                                        val isAvailable = item.activeOtts.contains(ott)
                                         Button(
                                             onClick = { OttLauncher.launch(context, ott, item.titleKo) },
-                                            modifier = Modifier.weight(1f).height(28.dp),
-                                            contentPadding = PaddingValues(0.dp),
-                                            shape = RoundedCornerShape(4.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(ott.colorHex))
+                                            enabled = isAvailable,
+                                            modifier = Modifier.weight(1f).height(36.dp),
+                                            contentPadding = PaddingValues(2.dp),
+                                            shape = RoundedCornerShape(6.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(ott.r, ott.g, ott.b),
+                                                disabledContainerColor = Color(50, 50, 50)
+                                            )
                                         ) {
-                                            Text(ott.displayName.take(3), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                text = ott.displayName,
+                                                color = if (isAvailable) Color.White else Color.Gray,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1
+                                            )
                                         }
                                     }
                                 }
@@ -411,15 +547,52 @@ jobs:
         }
         """
 
+        files["app/src/main/java/com/ottsearch/app/MainActivity.kt"] = """
+        package com.ottsearch.app
+
+        import android.os.Bundle
+        import androidx.activity.ComponentActivity
+        import androidx.activity.compose.setContent
+        import androidx.compose.runtime.*
+        import com.ottsearch.app.core.HangulSearchEngine
+        import com.ottsearch.app.ui.MainFoldableScreen
+
+        class MainActivity : ComponentActivity() {
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+                setContent {
+                    var query by remember { mutableStateOf("") }
+                    val results = remember(query) {
+                        HangulSearchEngine.search(query)
+                    }
+                    MainFoldableScreen(
+                        onSearch = { query = it },
+                        results = results,
+                        currentQuery = query
+                    )
+                }
+            }
+        }
+        """
+
         for path, content in files.items():
             os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
-                f.write(content.strip() + "\\n")
-        print("Success: All files created.")
+                f.write(content.strip())
+        print("All files written cleanly without escape errors.")
 
     - name: Build Debug APK Directly
       run: |
-        gradle assembleDebug --no-daemon --stacktrace
+        if gradle assembleDebug --no-daemon > build.log 2>&1; then
+          echo "### ✅ OTT Search APK 빌드 성공!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ 빌드 오류 상세 원인" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E "(FAILURE|What went wrong|Execution failed|^> |^e: )" -A 8 build.log >> $GITHUB_STEP_SUMMARY || tail -n 40 build.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat build.log
+          exit 1
+        fi
 
     - name: Upload APK for Fold8
       uses: actions/upload-artifact@v4
